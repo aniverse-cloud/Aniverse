@@ -182,6 +182,12 @@
     .float-info {
       right: 16px;
     }
+    .nocopy {
+      user-select: none;
+      -webkit-user-select: none; /* Safari */
+      -ms-user-select: none;     /* IE/Edge */
+    }
+
 
 /* PC view (desktop screens) */
   @media screen and (min-width: 768px) {
@@ -214,11 +220,11 @@
       padding-left: 30px;
     }
     .nocopy {
-     user-select: none;
-     -webkit-user-select: none;
-     -moz-user-select: none;
-     -ms-user-select: none;
+      user-select: none;
+      -webkit-user-select: none; /* Safari */
+      -ms-user-select: none;     /* IE/Edge */
     }
+
 
 </style>
 
