@@ -13,7 +13,7 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Phone"
+        android:label="Phone company Anverse"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AnversePhone">
@@ -24,14 +24,30 @@
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
 
+            <!-- 1. Standard App Launcher -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- 2. Generic Dialer Intent -->
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <category android:name="android.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- 3. Specific Telecom Dialer Intent -->
             <intent-filter>
                 <action android:name="android.intent.action.DIAL" />
                 <category android:name="android.category.DEFAULT" />
                 <data android:scheme="tel" />
             </intent-filter>
+
+            <!-- 4. Web View Intent -->
             <intent-filter>
-                <action android:name="android.intent.action.DIAL" />
+                <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.category.DEFAULT" />
+                <data android:scheme="tel" />
             </intent-filter>
         </activity>
 
@@ -57,16 +73,6 @@
                 <action android:name="android.telecom.InCallService" />
             </intent-filter>
         </service>
-
-            <activity-alias
-            android:name=".Launcher"
-            android:targetActivity=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
 
     </application>
 </manifest>

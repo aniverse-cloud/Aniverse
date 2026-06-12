@@ -30,14 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.anverse.phone.viewmodel.DialerViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainDashboardLayout(viewModel: DialerViewModel) {
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableStateOf(1) }
     var inputNumber by remember { mutableStateOf("") }
 
     Scaffold(
@@ -152,21 +149,17 @@ private fun placeSystemCall(context: Context, number: String) {
 
 @Composable
 fun CallLogsView(viewModel: DialerViewModel) {
-    val callLogs by viewModel.callLogs.collectAsState()
-
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        items(callLogs) { log ->
-            val dateString = SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault()).format(Date(log.date))
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = log.number, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(text = dateString, fontSize = 14.sp, color = Color.Gray)
-                    Text(text = "Duration: ${log.duration}", fontSize = 14.sp, color = Color.Gray)
+    val logs by viewModel.callLogs.collectAsState()
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        items(logs) { log ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text(log.number, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    Text(log.duration, color = Color.Gray, fontSize = 12.sp)
                 }
+                Icon(Icons.Default.Call, contentDescription = "Call Back", tint = MaterialTheme.colorScheme.primary)
             }
+            Divider(color = MaterialTheme.colorScheme.secondary)
         }
     }
 }
@@ -174,22 +167,19 @@ fun CallLogsView(viewModel: DialerViewModel) {
 @Composable
 fun ContactsListView(viewModel: DialerViewModel) {
     val contacts by viewModel.contacts.collectAsState()
-    val context = LocalContext.current
-
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         items(contacts) { contact ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable { placeSystemCall(context, contact.number) },
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = contact.name, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(text = contact.number, fontSize = 16.sp, color = Color.Gray)
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(40.dp).background(MaterialTheme.colorScheme.primary, CircleShape), contentAlignment = Alignment.Center) {
+                    Text(if (contact.name.isNotEmpty()) contact.name.take(1) else "?", fontWeight = FontWeight.Bold, color = Color.Black)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(contact.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    Text(contact.number, color = Color.Gray, fontSize = 13.sp)
                 }
             }
+            Divider(color = MaterialTheme.colorScheme.secondary)
         }
     }
 }
