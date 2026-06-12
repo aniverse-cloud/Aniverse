@@ -37,7 +37,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainDashboardLayout(viewModel: DialerViewModel) {
-    var selectedTab by remember { mutableStateOf(1) }
+    var selectedTab by remember { mutableStateOf(0) }
     var inputNumber by remember { mutableStateOf("") }
 
     Scaffold(
