@@ -10,7 +10,7 @@ class AnverseInCallService : InCallService() {
     private val callCallback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) {
             super.onStateChanged(call, state)
-            CallManager.updateCall(call)
+            CallManager.addCall(call)
 
             if (state == Call.STATE_DISCONNECTED) {
                 call.unregisterCallback(this)

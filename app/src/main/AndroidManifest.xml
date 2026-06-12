@@ -24,26 +24,19 @@
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
 
-            <!-- 1. Standard App Launcher -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.category.LAUNCHER" />
             </intent-filter>
-
-            <!-- 2. Generic Dialer Intent -->
             <intent-filter>
                 <action android:name="android.intent.action.DIAL" />
                 <category android:name="android.category.DEFAULT" />
             </intent-filter>
-
-            <!-- 3. Specific Telecom Dialer Intent -->
             <intent-filter>
                 <action android:name="android.intent.action.DIAL" />
                 <category android:name="android.category.DEFAULT" />
                 <data android:scheme="tel" />
             </intent-filter>
-
-            <!-- 4. Web View Intent -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.category.DEFAULT" />
@@ -73,6 +66,5 @@
                 <action android:name="android.telecom.InCallService" />
             </intent-filter>
         </service>
-
     </application>
 </manifest>
