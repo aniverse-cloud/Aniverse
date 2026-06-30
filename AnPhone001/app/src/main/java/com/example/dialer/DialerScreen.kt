@@ -1,5 +1,13 @@
 package com.example.dialer
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.telecom.TelecomManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,14 +21,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 
 @Composable
 fun DialerScreen(navController: NavController? = null) {
     var phoneNumber by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    val callPhonePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            placeCall(context, phoneNumber)
+        } else {
+            Toast.makeText(context, "Permission required to place calls.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -86,7 +107,11 @@ fun DialerScreen(navController: NavController? = null) {
             FloatingActionButton(
                 onClick = {
                     if (phoneNumber.isNotEmpty()) {
-                        navController?.navigate(Screen.CallScreen.route)
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+                            placeCall(context, phoneNumber)
+                        } else {
+                            callPhonePermissionLauncher.launch(Manifest.permission.CALL_PHONE)
+                        }
                     }
                 },
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -101,7 +126,7 @@ fun DialerScreen(navController: NavController? = null) {
                 )
             }
 
-            // Backspace Button (using Clear icon as a fallback)
+            // Backspace Button
             IconButton(
                 onClick = {
                     if (phoneNumber.isNotEmpty()) {
@@ -117,6 +142,17 @@ fun DialerScreen(navController: NavController? = null) {
                 )
             }
         }
+    }
+}
+
+private fun placeCall(context: Context, phoneNumber: String) {
+    try {
+        val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
+        val uri = Uri.fromParts("tel", phoneNumber, null)
+        telecomManager.placeCall(uri, null)
+    } catch (e: SecurityException) {
+        // Permission not granted or not default dialer
+        Toast.makeText(context, "Cannot place call. Set as default dialer?", Toast.LENGTH_SHORT).show()
     }
 }
 
