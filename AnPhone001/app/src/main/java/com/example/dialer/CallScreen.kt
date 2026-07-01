@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
+// removed VolumeUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
@@ -66,7 +67,11 @@ fun CallScreen(navController: NavController) {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true })
+            startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true }, {
+                                    isSpeakerOn = true
+                                    val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                                    am.isSpeakerphoneOn = true
+                                })
         } else {
             Toast.makeText(context, "Permission required to record calls.", Toast.LENGTH_SHORT).show()
         }
@@ -206,7 +211,11 @@ fun CallScreen(navController: NavController) {
                         onClick = {
                             if (!isRecording) {
                                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                    startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true })
+                                    startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true }, {
+                                    isSpeakerOn = true
+                                    val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                                    am.isSpeakerphoneOn = true
+                                })
                                 } else {
                                     recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                 }
@@ -304,7 +313,7 @@ fun CallScreen(navController: NavController) {
                         imageVector = Icons.Filled.Call,
                         contentDescription = "Speaker",
                         modifier = Modifier.size(32.dp),
-                        tint = if (isSpeakerOn) MaterialTheme.colorScheme.primary else Color.DarkGray
+                        tint = if (isSpeakerOn) Color(0xFF4285F4) else Color.DarkGray
                     )
                 }
             }
@@ -312,7 +321,7 @@ fun CallScreen(navController: NavController) {
     }
 }
 
-private fun startRecording(context: Context, callerName: String, phoneNumber: String, setRecorder: (MediaRecorder) -> Unit, setRecordingState: () -> Unit) {
+private fun startRecording(context: Context, callerName: String, phoneNumber: String, setRecorder: (MediaRecorder) -> Unit, setRecordingState: () -> Unit, enableSpeaker: () -> Unit) {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
 
     // Format the file name
@@ -360,13 +369,11 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
     }
 
     // Try sources in order of preference for two-way audio (earpiece, speaker, etc)
-    // For Android 10+, VOICE_RECOGNITION and MIC are often the only sources that don't get silenced.
-    // Additionally, the AAC hardware encoder is often locked by the modem during a call, resulting in a silent file.
-    // Using THREE_GPP and AMR_NB is a common workaround to get audio when AAC produces silence.
+    // For non-system dialers, telephony framework actively zeros out buffers for VOICE_CALL, VOICE_COMMUNICATION,
+    // and sometimes VOICE_RECOGNITION during a call, rather than throwing an exception.
+    // The only bulletproof way to capture two-way audio is to use MIC and force the speakerphone on.
     val audioSources = listOf(
-        MediaRecorder.AudioSource.VOICE_RECOGNITION,
-        MediaRecorder.AudioSource.MIC,
-        MediaRecorder.AudioSource.VOICE_COMMUNICATION
+        MediaRecorder.AudioSource.MIC
     )
 
     var successfulRecorder: MediaRecorder? = null
@@ -412,16 +419,12 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
         setRecorder(successfulRecorder)
         setRecordingState()
 
-        val sourceName = when(usedSource) {
-            MediaRecorder.AudioSource.VOICE_CALL -> "VOICE_CALL"
-            MediaRecorder.AudioSource.VOICE_COMMUNICATION -> "VOICE_COMMUNICATION"
-            MediaRecorder.AudioSource.VOICE_RECOGNITION -> "VOICE_RECOGNITION"
-            MediaRecorder.AudioSource.MIC -> "MIC"
-            else -> "UNKNOWN"
+        if (usedSource == MediaRecorder.AudioSource.MIC) {
+            enableSpeaker()
+            Toast.makeText(context, "Recording via MIC. Speaker auto-enabled.", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(context, "Recording started to Music/$fileName", Toast.LENGTH_LONG).show()
         }
-
-        val extraMsg = if (usedSource == MediaRecorder.AudioSource.MIC) " (Enable speaker for 2-way)" else ""
-        Toast.makeText(context, "Recording ($sourceName) to Music/$fileName$extraMsg", Toast.LENGTH_LONG).show()
     } else {
         Toast.makeText(context, "All recording sources failed or are blocked by OS.", Toast.LENGTH_LONG).show()
     }
