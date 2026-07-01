@@ -249,8 +249,10 @@ fun CallScreen(navController: NavController) {
                 FloatingActionButton(
                     onClick = {
                         call?.let {
-                            if (it.state == Call.STATE_RINGING) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && it.state == Call.STATE_RINGING) {
                                 it.reject(Call.REJECT_REASON_DECLINED)
+                            } else if (it.state == Call.STATE_RINGING) {
+                                it.reject(false, null)
                             } else {
                                 it.disconnect()
                             }

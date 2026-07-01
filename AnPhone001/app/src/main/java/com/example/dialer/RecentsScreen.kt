@@ -9,9 +9,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -68,13 +71,26 @@ fun RecentsScreen() {
         return
     }
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(calls) { call ->
-            ListItem(
-                headlineContent = { Text(call.number, fontWeight = FontWeight.Bold) },
-                supportingContent = { Text("${call.date} • ${getCallTypeString(call.type)}") },
+    if (calls.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No recent calls",
+                color = Color.Gray,
+                fontSize = 16.sp
             )
-            Divider()
+        }
+    } else {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(calls) { call ->
+                ListItem(
+                    headlineContent = { Text(call.number, fontWeight = FontWeight.Bold) },
+                    supportingContent = { Text("${call.date} • ${getCallTypeString(call.type)}") },
+                )
+                Divider()
+            }
         }
     }
 }
