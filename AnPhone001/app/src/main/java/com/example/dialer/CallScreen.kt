@@ -320,13 +320,11 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
             @Suppress("DEPRECATION")
             MediaRecorder()
         }
-        try {
-            // Attempt to record both uplink (microphone) and downlink (speaker)
-            recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_CALL)
-        } catch (e: Exception) {
-            // Fallback to VOICE_COMMUNICATION or MIC if system prevents VOICE_CALL
-            recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
-        }
+
+        // For third-party apps, MIC or VOICE_COMMUNICATION are the only reliable sources.
+        // VOICE_CALL is heavily restricted by OEMs and usually throws RuntimeException on start() or prepare().
+        // To get both sides, users typically need to use speakerphone with MIC/VOICE_COMMUNICATION.
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
         recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
 
@@ -369,7 +367,8 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
 
         setRecorder(recorder)
         setRecordingState()
-        Toast.makeText(context, "Recording started. Saving to Music/$fileName", Toast.LENGTH_LONG).show()
+        // Inform user about speakerphone requirement for two-way audio on third-party apps
+        Toast.makeText(context, "Recording started. Enable speaker for two-way audio.", Toast.LENGTH_LONG).show()
     } catch (e: Exception) {
         e.printStackTrace()
         Toast.makeText(context, "Failed to start recording: ${e.message}", Toast.LENGTH_SHORT).show()
