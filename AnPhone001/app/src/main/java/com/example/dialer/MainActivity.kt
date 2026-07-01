@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.telecom.TelecomManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -33,7 +34,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        enableEdgeToEdge() // Full edge-to-edge support
         requestDefaultDialerRole()
 
         setContent {
@@ -108,12 +109,12 @@ fun DialerApp(navController: NavHostController) {
         Screen.Recents,
         Screen.Contacts
     )
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
         bottomBar = {
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = navBackStackEntry?.destination?.route
-            // Hide bottom bar on the CallScreen
+            // Hide bottom bar on the CallScreen completely
             if (currentRoute != Screen.CallScreen.route) {
                 NavigationBar {
                     items.forEach { screen ->
@@ -136,7 +137,14 @@ fun DialerApp(navController: NavHostController) {
             }
         }
     ) { innerPadding ->
-        NavHost(navController, startDestination = Screen.Dialer.route, Modifier.padding(innerPadding)) {
+        // On CallScreen, we ignore inner padding to allow full edge-to-edge drawing
+        val modifier = if (currentRoute == Screen.CallScreen.route) {
+            Modifier
+        } else {
+            Modifier.padding(innerPadding)
+        }
+
+        NavHost(navController, startDestination = Screen.Dialer.route, modifier) {
             composable(Screen.Dialer.route) { DialerScreen(navController) }
             composable(Screen.Recents.route) { RecentsScreen() }
             composable(Screen.Contacts.route) { ContactsScreen() }

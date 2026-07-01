@@ -106,7 +106,8 @@ fun CallScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .systemBarsPadding(), // Ensures content is drawn edge-to-edge but text doesn't overlap status bar
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(48.dp))
@@ -185,8 +186,9 @@ fun CallScreen(navController: NavController) {
                 ) {
                     CallActionButton(
                         icon = Icons.Filled.Star,
-                        label = "Record",
+                        label = if (isRecording) "Recording..." else "Record",
                         isActive = isRecording,
+                        activeColor = Color.Red, // Highlight red when recording
                         onClick = {
                             if (!isRecording) {
                                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
@@ -328,6 +330,7 @@ fun CallActionButton(
     icon: ImageVector,
     label: String,
     isActive: Boolean = false,
+    activeColor: Color = Color.Black,
     onClick: () -> Unit
 ) {
     Column(
@@ -344,7 +347,7 @@ fun CallActionButton(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (isActive) Color.Black else Color.DarkGray,
+                tint = if (isActive) activeColor else Color.DarkGray,
                 modifier = Modifier.size(28.dp)
             )
         }
@@ -352,7 +355,7 @@ fun CallActionButton(
         Text(
             text = label,
             fontSize = 14.sp,
-            color = Color.DarkGray
+            color = if (isActive && activeColor == Color.Red) Color.Red else Color.DarkGray
         )
     }
 }
