@@ -320,9 +320,9 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
     val safeNumber = phoneNumber.replace(Regex("[^0-9+]"), "").takeIf { it.isNotBlank() } ?: "Unknown"
 
     val fileName = if (safeName != null && safeName != "UnknownContact" && safeName != "Unknown") {
-        "Call_${safeName}_${safeNumber}_$timeStamp.m4a"
+        "Call_${safeName}_${safeNumber}_$timeStamp.3gp"
     } else {
-        "Call_${safeNumber}_$timeStamp.m4a"
+        "Call_${safeNumber}_$timeStamp.3gp"
     }
 
     // Determine output destination
@@ -334,7 +334,7 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "audio/mp4")
+                put(MediaStore.MediaColumns.MIME_TYPE, "audio/3gpp")
                 put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/CallRecordings")
             }
             audioUri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
@@ -360,11 +360,13 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
     }
 
     // Try sources in order of preference for two-way audio (earpiece, speaker, etc)
+    // For Android 10+, VOICE_RECOGNITION and MIC are often the only sources that don't get silenced.
+    // Additionally, the AAC hardware encoder is often locked by the modem during a call, resulting in a silent file.
+    // Using THREE_GPP and AMR_NB is a common workaround to get audio when AAC produces silence.
     val audioSources = listOf(
-        MediaRecorder.AudioSource.VOICE_CALL,          // Best for both sides, highly restricted
-        MediaRecorder.AudioSource.VOICE_COMMUNICATION, // Echo cancellation, good for speaker/headset
-        MediaRecorder.AudioSource.VOICE_RECOGNITION,   // Often bypasses AGC/filters
-        MediaRecorder.AudioSource.MIC                  // Absolute fallback, relies on ambient sound if not speaker
+        MediaRecorder.AudioSource.VOICE_RECOGNITION,
+        MediaRecorder.AudioSource.MIC,
+        MediaRecorder.AudioSource.VOICE_COMMUNICATION
     )
 
     var successfulRecorder: MediaRecorder? = null
@@ -380,8 +382,8 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
 
         try {
             recorder.setAudioSource(source)
-            recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
+            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val fd = getOutputFileDescriptor()
