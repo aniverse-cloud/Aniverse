@@ -1,6 +1,7 @@
 package com.example.dialer
 
 import android.telecom.Call
+import android.telecom.InCallService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +14,12 @@ data class CallStateWrapper(
 )
 
 object CallManager {
+    var inCallService: InCallService? = null
+
+    fun setAudioRoute(route: Int) {
+        inCallService?.setAudioRoute(route)
+    }
+
     private val _callState = MutableStateFlow(CallStateWrapper(null))
     val callState: StateFlow<CallStateWrapper> = _callState.asStateFlow()
 

@@ -7,6 +7,7 @@ import android.telecom.InCallService
 class CallService : InCallService() {
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
+        CallManager.inCallService = this
         CallManager.updateCall(call)
 
         // Launch UI if not already in foreground

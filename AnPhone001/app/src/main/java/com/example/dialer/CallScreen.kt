@@ -69,8 +69,13 @@ fun CallScreen(navController: NavController) {
         if (isGranted) {
             startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true }, {
                                     isSpeakerOn = true
-                                    val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                                    am.isSpeakerphoneOn = true
+                                    val callService = CallManager.callState.value.call
+                                    if (callService != null) {
+                                        CallManager.setAudioRoute(android.telecom.CallAudioState.ROUTE_SPEAKER)
+                                    } else {
+                                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                                        am.isSpeakerphoneOn = true
+                                    }
                                 })
         } else {
             Toast.makeText(context, "Permission required to record calls.", Toast.LENGTH_SHORT).show()
@@ -213,8 +218,13 @@ fun CallScreen(navController: NavController) {
                                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                                     startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true }, {
                                     isSpeakerOn = true
-                                    val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                                    am.isSpeakerphoneOn = true
+                                    val callService = CallManager.callState.value.call
+                                    if (callService != null) {
+                                        CallManager.setAudioRoute(android.telecom.CallAudioState.ROUTE_SPEAKER)
+                                    } else {
+                                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                                        am.isSpeakerphoneOn = true
+                                    }
                                 })
                                 } else {
                                     recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -306,8 +316,15 @@ fun CallScreen(navController: NavController) {
 
                 IconButton(onClick = {
                     isSpeakerOn = !isSpeakerOn
-                    val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                    am.isSpeakerphoneOn = isSpeakerOn
+                    val callService = CallManager.callState.value.call
+                    if (callService != null) {
+                        val route = if (isSpeakerOn) android.telecom.CallAudioState.ROUTE_SPEAKER else android.telecom.CallAudioState.ROUTE_EARPIECE
+                        CallManager.setAudioRoute(route)
+                    } else {
+                        // Fallback
+                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                        am.isSpeakerphoneOn = isSpeakerOn
+                    }
                 }) {
                     Icon(
                         imageVector = Icons.Filled.Call,
