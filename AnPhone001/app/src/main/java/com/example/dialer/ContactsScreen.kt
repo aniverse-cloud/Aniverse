@@ -9,12 +9,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -62,26 +59,13 @@ fun ContactsScreen() {
         return
     }
 
-    if (contacts.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "No contacts found",
-                color = Color.Gray,
-                fontSize = 16.sp
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(contacts) { contact ->
+            ListItem(
+                headlineContent = { Text(contact.name, fontWeight = FontWeight.Bold) },
+                supportingContent = { Text(contact.number) },
             )
-        }
-    } else {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(contacts) { contact ->
-                ListItem(
-                    headlineContent = { Text(contact.name, fontWeight = FontWeight.Bold) },
-                    supportingContent = { Text(contact.number) },
-                )
-                Divider()
-            }
+            Divider()
         }
     }
 }

@@ -1,132 +1,96 @@
 package com.example.dialer
 
 import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
+import android.content.Intent
 import android.net.Uri
-import android.telecom.TelecomManager
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.navigation.NavController
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun DialerScreen(navController: NavController? = null) {
+fun DialerScreen() {
     var phoneNumber by remember { mutableStateOf("") }
     val context = LocalContext.current
-
-    val callPhonePermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            placeCall(context, phoneNumber)
-        } else {
-            Toast.makeText(context, "Permission required to place calls.", Toast.LENGTH_SHORT).show()
-        }
-    }
+    val callPermissionState = rememberPermissionState(Manifest.permission.CALL_PHONE)
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Display area for the typed number
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Text(
-                text = phoneNumber,
-                fontSize = 36.sp,
-                maxLines = 1,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-
-        // Keypad grid
-        val keys = listOf(
-            listOf("1" to "", "2" to "ABC", "3" to "DEF"),
-            listOf("4" to "GHI", "5" to "JKL", "6" to "MNO"),
-            listOf("7" to "PQRS", "8" to "TUV", "9" to "WXYZ"),
-            listOf("*" to "", "0" to "+", "#" to "")
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = phoneNumber,
+            fontSize = 36.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(16.dp)
         )
 
-        Column(
+        Spacer(modifier = Modifier.height(32.dp))
+
+        val keys = listOf(
+            "1" to "", "2" to "ABC", "3" to "DEF",
+            "4" to "GHI", "5" to "JKL", "6" to "MNO",
+            "7" to "PQRS", "8" to "TUV", "9" to "WXYZ",
+            "*" to "", "0" to "+", "#" to ""
+        )
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(bottom = 32.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            for (row in keys) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(modifier = Modifier.weight(1f))
-                    for ((number, letters) in row) {
-                        DialerKey(number, letters) {
-                            phoneNumber += it
-                        }
-                    }
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+            items(keys) { (number, letters) ->
+                DialerKey(
+                    number = number,
+                    letters = letters,
+                    onClick = { phoneNumber += number }
+                )
             }
         }
 
-        // Bottom action row
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Spacer(modifier = Modifier.width(48.dp)) // Placeholder for symmetry
-
-            // Call Button
+            Spacer(modifier = Modifier.width(48.dp))
             FloatingActionButton(
                 onClick = {
                     if (phoneNumber.isNotEmpty()) {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
-                            placeCall(context, phoneNumber)
+                        if (callPermissionState.status.isGranted) {
+                            val intent = Intent(Intent.ACTION_CALL).apply {
+                                data = Uri.parse("tel:$phoneNumber")
+                            }
+                            context.startActivity(intent)
                         } else {
-                            callPhonePermissionLauncher.launch(Manifest.permission.CALL_PHONE)
+                            callPermissionState.launchPermissionRequest()
                         }
                     }
                 },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = CircleShape,
-                modifier = Modifier.size(72.dp)
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Call,
-                    contentDescription = "Call",
-                    modifier = Modifier.size(36.dp)
-                )
+                Icon(Icons.Filled.Call, contentDescription = "Call", modifier = Modifier.size(32.dp))
             }
-
-            // Backspace Button
             IconButton(
                 onClick = {
                     if (phoneNumber.isNotEmpty()) {
@@ -135,50 +99,26 @@ fun DialerScreen(navController: NavController? = null) {
                 },
                 modifier = Modifier.size(48.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Clear,
-                    contentDescription = "Backspace",
-                    tint = if (phoneNumber.isEmpty()) Color.LightGray else Color.Gray
-                )
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Backspace")
             }
         }
-    }
-}
-
-private fun placeCall(context: Context, phoneNumber: String) {
-    try {
-        val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as TelecomManager
-        val uri = Uri.fromParts("tel", phoneNumber, null)
-        telecomManager.placeCall(uri, null)
-    } catch (e: SecurityException) {
-        // Permission not granted or not default dialer
-        Toast.makeText(context, "Cannot place call. Set as default dialer?", Toast.LENGTH_SHORT).show()
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 @Composable
-fun DialerKey(number: String, letters: String, onClick: (String) -> Unit) {
+fun DialerKey(number: String, letters: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(72.dp)
             .clip(CircleShape)
-            .background(Color(0xFFF0F0F0))
-            .clickable { onClick(number) },
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = number,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Normal,
-                color = Color.Black
-            )
+            Text(text = number, fontSize = 28.sp, fontWeight = FontWeight.Medium)
             if (letters.isNotEmpty()) {
-                Text(
-                    text = letters,
-                    fontSize = 10.sp,
-                    color = Color.Gray
-                )
+                Text(text = letters, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

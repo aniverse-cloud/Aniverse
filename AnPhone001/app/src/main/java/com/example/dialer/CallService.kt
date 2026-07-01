@@ -10,18 +10,23 @@ class CallService : InCallService() {
         CallManager.inCallService = this
         CallManager.updateCall(call)
 
-        // Launch UI if not already in foreground
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("SHOW_CALL_SCREEN", true)
+        if (call.state == Call.STATE_RINGING) {
+            NotificationHelper.showIncomingCallNotification(this, call)
+        } else {
+            // Launch UI if not already in foreground for outgoing calls or active calls
+            val intent = Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("SHOW_CALL_SCREEN", true)
+            }
+            startActivity(intent)
         }
-        startActivity(intent)
     }
 
     override fun onCallRemoved(call: Call) {
         super.onCallRemoved(call)
         if (CallManager.callState.value.call == call) {
             CallManager.updateCall(null)
+            NotificationHelper.cancelNotification(this)
         }
     }
 }

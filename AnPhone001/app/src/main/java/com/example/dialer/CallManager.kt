@@ -10,7 +10,7 @@ data class CallStateWrapper(
     val call: Call?,
     val state: Int = Call.STATE_NEW,
     val details: Call.Details? = null,
-    val updateTick: Long = System.currentTimeMillis() // ensure distinct emissions
+    val updateTick: Long = System.currentTimeMillis()
 )
 
 object CallManager {

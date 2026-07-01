@@ -1,33 +1,11 @@
 package com.example.dialer
 
-import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
-import android.media.AudioManager
-import android.media.MediaRecorder
-import android.os.Build
-import android.os.Environment
-import android.telecom.Call
-import android.telecom.PhoneAccountHandle
-import android.telecom.TelecomManager
-import android.content.ContentValues
-import android.provider.MediaStore
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Call
-// removed VolumeUp
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.CallEnd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,109 +13,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Composable
-fun CallScreen(navController: NavController) {
-    val context = LocalContext.current
-    val callStateWrapper by CallManager.callState.collectAsState()
-    val call = callStateWrapper.call
-    val state = callStateWrapper.state
-    val details = callStateWrapper.details
+fun CallScreen(navController: NavController, phoneNumber: String = "62906 72442") {
+    // In a real app, you would pass the name and number, and manage the call state.
+    val contactName = "Raju Prasad Bhagat"
 
+    // States for toggles
     var isMuted by remember { mutableStateOf(false) }
     var isOnHold by remember { mutableStateOf(false) }
-    var isSpeakerOn by remember { mutableStateOf(false) }
     var isRecording by remember { mutableStateOf(false) }
-    var mediaRecorder: MediaRecorder? by remember { mutableStateOf(null) }
-
-    val phoneNumber = details?.handle?.schemeSpecificPart ?: "Unknown"
-    val callerName = details?.callerDisplayName ?: "Unknown Contact"
-
-    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true }, {
-                                    isSpeakerOn = true
-                                    val callService = CallManager.callState.value.call
-                                    if (callService != null) {
-                                        CallManager.setAudioRoute(android.telecom.CallAudioState.ROUTE_SPEAKER)
-                                    } else {
-                                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                                        am.isSpeakerphoneOn = true
-                                    }
-                                })
-        } else {
-            Toast.makeText(context, "Permission required to record calls.", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // Dual SIM detection
-    var simInfo by remember { mutableStateOf("Unknown SIM") }
-    LaunchedEffect(details) {
-        details?.accountHandle?.let { handle ->
-            // Try to extract SIM info from PhoneAccountHandle
-            val id = handle.id
-            if (id.contains("0") || id.contains("1", ignoreCase = true)) {
-                simInfo = "SIM 1"
-            } else if (id.contains("1") || id.contains("2", ignoreCase = true)) {
-                simInfo = "SIM 2"
-            } else {
-                 simInfo = "SIM ${handle.id.take(4)}" // Fallback
-            }
-        }
-    }
-
-    val callStateLabel = when (state) {
-        Call.STATE_RINGING -> "Ringing"
-        Call.STATE_DIALING -> "Dialing"
-        Call.STATE_ACTIVE -> "Active"
-        Call.STATE_HOLDING -> "On Hold"
-        Call.STATE_DISCONNECTED -> "Disconnected"
-        else -> "Connecting..."
-    }
-
-    LaunchedEffect(state) {
-        isOnHold = state == Call.STATE_HOLDING
-
-        if (state == Call.STATE_DISCONNECTED && isRecording) {
-            try {
-                mediaRecorder?.stop()
-                mediaRecorder?.release()
-                mediaRecorder = null
-                isRecording = false
-                Toast.makeText(context, "Call ended, recording saved.", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
+    var isSpeakerOn by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFF2F3F5)
+        color = Color(0xFFF2F3F5) // Light gray background matching screenshot
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
-                .systemBarsPadding(), // Ensures content is drawn edge-to-edge but text doesn't overlap status bar
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
+            // Caller Info
             Text(
-                text = callerName,
+                text = contactName,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Black
@@ -149,7 +56,6 @@ fun CallScreen(navController: NavController) {
                 color = Color.DarkGray
             )
             Spacer(modifier = Modifier.height(4.dp))
-
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     color = Color.DarkGray,
@@ -164,7 +70,7 @@ fun CallScreen(navController: NavController) {
                     )
                 }
                 Text(
-                    text = "$simInfo - $callStateLabel",
+                    text = "SIM 1 Dialing",
                     fontSize = 16.sp,
                     color = Color.DarkGray
                 )
@@ -172,6 +78,7 @@ fun CallScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // Action Grid
             Column(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -181,27 +88,20 @@ fun CallScreen(navController: NavController) {
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     CallActionButton(
-                        icon = Icons.Filled.MoreVert,
+                        icon = Icons.Filled.EventNote,
                         label = "Notes",
                         onClick = { /* TODO */ }
                     )
                     CallActionButton(
                         icon = Icons.Filled.Add,
                         label = "Add call",
-                        onClick = {
-                            call?.hold()
-                            Toast.makeText(context, "Call held to add another.", Toast.LENGTH_SHORT).show()
-                        }
+                        onClick = { /* TODO */ }
                     )
                     CallActionButton(
-                        icon = Icons.Filled.Settings,
+                        icon = if (isMuted) Icons.Filled.MicOff else Icons.Filled.Mic,
                         label = "Mute",
                         isActive = isMuted,
-                        onClick = {
-                            isMuted = !isMuted
-                            val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                            am.isMicrophoneMute = isMuted
-                        }
+                        onClick = { isMuted = !isMuted }
                     )
                 }
                 Row(
@@ -209,60 +109,28 @@ fun CallScreen(navController: NavController) {
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     CallActionButton(
-                        icon = Icons.Filled.Star,
-                        label = if (isRecording) "Recording..." else "Record",
+                        icon = Icons.Filled.Voicemail, // Placeholder for record icon
+                        label = "Record",
                         isActive = isRecording,
-                        activeColor = Color.Red, // Highlight red when recording
-                        onClick = {
-                            if (!isRecording) {
-                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                    startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true }, {
-                                    isSpeakerOn = true
-                                    val callService = CallManager.callState.value.call
-                                    if (callService != null) {
-                                        CallManager.setAudioRoute(android.telecom.CallAudioState.ROUTE_SPEAKER)
-                                    } else {
-                                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                                        am.isSpeakerphoneOn = true
-                                    }
-                                })
-                                } else {
-                                    recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                }
-                            } else {
-                                try {
-                                    mediaRecorder?.stop()
-                                    mediaRecorder?.release()
-                                    mediaRecorder = null
-                                    isRecording = false
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
-                            }
-                        }
+                        onClick = { isRecording = !isRecording }
                     )
                     CallActionButton(
-                        icon = Icons.Filled.Person,
+                        icon = Icons.Filled.Group, // Contacts
                         label = "Contacts",
                         onClick = { /* TODO */ }
                     )
                     CallActionButton(
-                        icon = Icons.Filled.Close,
+                        icon = Icons.Filled.Pause,
                         label = "Hold",
                         isActive = isOnHold,
-                        onClick = {
-                            if (isOnHold) {
-                                call?.unhold()
-                            } else {
-                                call?.hold()
-                            }
-                        }
+                        onClick = { isOnHold = !isOnHold }
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(48.dp))
 
+            // Bottom Controls
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -270,180 +138,42 @@ fun CallScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Keypad
                 IconButton(onClick = { /* TODO */ }) {
                     Icon(
-                        imageVector = Icons.Filled.Phone,
+                        imageVector = Icons.Filled.Dialpad,
                         contentDescription = "Keypad",
                         modifier = Modifier.size(32.dp),
                         tint = Color.DarkGray
                     )
                 }
 
+                // End Call
                 FloatingActionButton(
-                    onClick = {
-                        call?.let {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && it.state == Call.STATE_RINGING) {
-                                it.reject(Call.REJECT_REASON_DECLINED)
-                            } else if (it.state == Call.STATE_RINGING) {
-                                it.reject(false, null)
-                            } else {
-                                it.disconnect()
-                            }
-                        } ?: run {
-                            navController.popBackStack()
-                        }
-
-                        if(isRecording) {
-                            try {
-                                mediaRecorder?.stop()
-                                mediaRecorder?.release()
-                                mediaRecorder = null
-                                isRecording = false
-                            } catch (e: Exception) {}
-                        }
-                    },
-                    containerColor = Color(0xFFEA4335),
+                    onClick = { navController.popBackStack() },
+                    containerColor = Color(0xFFEA4335), // Red
                     contentColor = Color.White,
                     shape = CircleShape,
                     modifier = Modifier.size(72.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Close,
+                        imageVector = Icons.Rounded.CallEnd,
                         contentDescription = "End call",
                         modifier = Modifier.size(36.dp)
                     )
                 }
 
-                IconButton(onClick = {
-                    isSpeakerOn = !isSpeakerOn
-                    val callService = CallManager.callState.value.call
-                    if (callService != null) {
-                        val route = if (isSpeakerOn) android.telecom.CallAudioState.ROUTE_SPEAKER else android.telecom.CallAudioState.ROUTE_EARPIECE
-                        CallManager.setAudioRoute(route)
-                    } else {
-                        // Fallback
-                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                        am.isSpeakerphoneOn = isSpeakerOn
-                    }
-                }) {
+                // Speaker
+                IconButton(onClick = { isSpeakerOn = !isSpeakerOn }) {
                     Icon(
-                        imageVector = Icons.Filled.Call,
+                        imageVector = if (isSpeakerOn) Icons.Filled.VolumeUp else Icons.Filled.VolumeDown,
                         contentDescription = "Speaker",
                         modifier = Modifier.size(32.dp),
-                        tint = if (isSpeakerOn) Color(0xFF4285F4) else Color.DarkGray
+                        tint = if (isSpeakerOn) MaterialTheme.colorScheme.primary else Color.DarkGray
                     )
                 }
             }
         }
-    }
-}
-
-private fun startRecording(context: Context, callerName: String, phoneNumber: String, setRecorder: (MediaRecorder) -> Unit, setRecordingState: () -> Unit, enableSpeaker: () -> Unit) {
-    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-
-    // Format the file name
-    val safeName = callerName.replace(Regex("[^a-zA-Z0-9]"), "").takeIf { it.isNotBlank() }
-    val safeNumber = phoneNumber.replace(Regex("[^0-9+]"), "").takeIf { it.isNotBlank() } ?: "Unknown"
-
-    val fileName = if (safeName != null && safeName != "UnknownContact" && safeName != "Unknown") {
-        "Call_${safeName}_${safeNumber}_$timeStamp.3gp"
-    } else {
-        "Call_${safeNumber}_$timeStamp.3gp"
-    }
-
-    // Determine output destination
-    val resolver = context.contentResolver
-    var audioUri: android.net.Uri? = null
-    var fallbackFile: File? = null
-
-    fun getOutputFileDescriptor(): java.io.FileDescriptor? {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "audio/3gpp")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/CallRecordings")
-            }
-            audioUri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
-            return audioUri?.let { resolver.openFileDescriptor(it, "w")?.fileDescriptor }
-        } else {
-            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-            if (!dir.exists()) { dir.mkdirs() }
-            fallbackFile = File(dir, fileName)
-            return java.io.FileInputStream(fallbackFile).fd // Actually we need path, but we handle it below
-        }
-    }
-
-    fun getOutputFilePath(): String? {
-       return fallbackFile?.absolutePath
-    }
-
-    fun cleanUpFailedFile() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            audioUri?.let { resolver.delete(it, null, null) }
-        } else {
-            fallbackFile?.delete()
-        }
-    }
-
-    // Try sources in order of preference for two-way audio (earpiece, speaker, etc)
-    // For non-system dialers, telephony framework actively zeros out buffers for VOICE_CALL, VOICE_COMMUNICATION,
-    // and sometimes VOICE_RECOGNITION during a call, rather than throwing an exception.
-    // The only bulletproof way to capture two-way audio is to use MIC and force the speakerphone on.
-    val audioSources = listOf(
-        MediaRecorder.AudioSource.MIC
-    )
-
-    var successfulRecorder: MediaRecorder? = null
-    var usedSource = -1
-
-    for (source in audioSources) {
-        val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MediaRecorder(context)
-        } else {
-            @Suppress("DEPRECATION")
-            MediaRecorder()
-        }
-
-        try {
-            recorder.setAudioSource(source)
-            recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val fd = getOutputFileDescriptor()
-                if (fd != null) recorder.setOutputFile(fd) else throw Exception("FD is null")
-            } else {
-                getOutputFileDescriptor() // sets fallbackFile
-                recorder.setOutputFile(getOutputFilePath())
-            }
-
-            // The prepare() and start() methods are where it throws if the source is blocked by the OS
-            recorder.prepare()
-            recorder.start()
-
-            successfulRecorder = recorder
-            usedSource = source
-            break // Success! Exit the loop.
-        } catch (e: Exception) {
-            // Failed, clean up this attempt
-            recorder.reset()
-            recorder.release()
-            cleanUpFailedFile()
-        }
-    }
-
-    if (successfulRecorder != null) {
-        setRecorder(successfulRecorder)
-        setRecordingState()
-
-        if (usedSource == MediaRecorder.AudioSource.MIC) {
-            enableSpeaker()
-            Toast.makeText(context, "Recording via MIC. Speaker auto-enabled.", Toast.LENGTH_LONG).show()
-        } else {
-            Toast.makeText(context, "Recording started to Music/$fileName", Toast.LENGTH_LONG).show()
-        }
-    } else {
-        Toast.makeText(context, "All recording sources failed or are blocked by OS.", Toast.LENGTH_LONG).show()
     }
 }
 
@@ -452,7 +182,6 @@ fun CallActionButton(
     icon: ImageVector,
     label: String,
     isActive: Boolean = false,
-    activeColor: Color = Color.Black,
     onClick: () -> Unit
 ) {
     Column(
@@ -469,7 +198,7 @@ fun CallActionButton(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (isActive) activeColor else Color.DarkGray,
+                tint = if (isActive) Color.Black else Color.DarkGray,
                 modifier = Modifier.size(28.dp)
             )
         }
@@ -477,7 +206,7 @@ fun CallActionButton(
         Text(
             text = label,
             fontSize = 14.sp,
-            color = if (isActive && activeColor == Color.Red) Color.Red else Color.DarkGray
+            color = Color.DarkGray
         )
     }
 }
