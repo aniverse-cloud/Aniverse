@@ -57,11 +57,14 @@ fun CallScreen(navController: NavController) {
     var isRecording by remember { mutableStateOf(false) }
     var mediaRecorder: MediaRecorder? by remember { mutableStateOf(null) }
 
+    val phoneNumber = details?.handle?.schemeSpecificPart ?: "Unknown"
+    val callerName = details?.callerDisplayName ?: "Unknown Contact"
+
     val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            startRecording(context, { mediaRecorder = it }, { isRecording = true })
+            startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true })
         } else {
             Toast.makeText(context, "Permission required to record calls.", Toast.LENGTH_SHORT).show()
         }
@@ -83,9 +86,6 @@ fun CallScreen(navController: NavController) {
         }
     }
 
-    val phoneNumber = details?.handle?.schemeSpecificPart ?: "Unknown"
-    val callerName = details?.callerDisplayName ?: "Unknown Contact"
-
     val callStateLabel = when (state) {
         Call.STATE_RINGING -> "Ringing"
         Call.STATE_DIALING -> "Dialing"
@@ -97,6 +97,18 @@ fun CallScreen(navController: NavController) {
 
     LaunchedEffect(state) {
         isOnHold = state == Call.STATE_HOLDING
+
+        if (state == Call.STATE_DISCONNECTED && isRecording) {
+            try {
+                mediaRecorder?.stop()
+                mediaRecorder?.release()
+                mediaRecorder = null
+                isRecording = false
+                Toast.makeText(context, "Call ended, recording saved.", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     Surface(
@@ -192,7 +204,7 @@ fun CallScreen(navController: NavController) {
                         onClick = {
                             if (!isRecording) {
                                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                    startRecording(context, { mediaRecorder = it }, { isRecording = true })
+                                    startRecording(context, callerName, phoneNumber, { mediaRecorder = it }, { isRecording = true })
                                 } else {
                                     recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                 }
@@ -298,7 +310,7 @@ fun CallScreen(navController: NavController) {
     }
 }
 
-private fun startRecording(context: Context, setRecorder: (MediaRecorder) -> Unit, setRecordingState: () -> Unit) {
+private fun startRecording(context: Context, callerName: String, phoneNumber: String, setRecorder: (MediaRecorder) -> Unit, setRecordingState: () -> Unit) {
     try {
         val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             MediaRecorder(context)
@@ -311,8 +323,23 @@ private fun startRecording(context: Context, setRecorder: (MediaRecorder) -> Uni
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
 
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val dir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
-        val file = File(dir, "CallRecord_$timeStamp.mp4")
+
+        // Format the file name based on whether we have a contact name or just a number
+        val safeName = callerName.replace(Regex("[^a-zA-Z0-9]"), "").takeIf { it.isNotBlank() }
+        val safeNumber = phoneNumber.replace(Regex("[^0-9+]"), "").takeIf { it.isNotBlank() } ?: "Unknown"
+
+        val fileName = if (safeName != null && safeName != "UnknownContact" && safeName != "Unknown") {
+            "Call_${safeName}_${safeNumber}_$timeStamp.m4a"
+        } else {
+            "Call_${safeNumber}_$timeStamp.m4a"
+        }
+
+        // Save to public Music directory so it's accessible
+        val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        val file = File(dir, fileName)
 
         recorder.setOutputFile(file.absolutePath)
         recorder.prepare()
@@ -320,10 +347,10 @@ private fun startRecording(context: Context, setRecorder: (MediaRecorder) -> Uni
 
         setRecorder(recorder)
         setRecordingState()
-        Toast.makeText(context, "Recording started", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Recording started. Saving to Music/$fileName", Toast.LENGTH_LONG).show()
     } catch (e: Exception) {
         e.printStackTrace()
-        Toast.makeText(context, "Failed to start recording", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Failed to start recording: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }
 
