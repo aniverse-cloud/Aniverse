@@ -313,7 +313,64 @@ fun CallScreen(navController: NavController) {
 }
 
 private fun startRecording(context: Context, callerName: String, phoneNumber: String, setRecorder: (MediaRecorder) -> Unit, setRecordingState: () -> Unit) {
-    try {
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+
+    // Format the file name
+    val safeName = callerName.replace(Regex("[^a-zA-Z0-9]"), "").takeIf { it.isNotBlank() }
+    val safeNumber = phoneNumber.replace(Regex("[^0-9+]"), "").takeIf { it.isNotBlank() } ?: "Unknown"
+
+    val fileName = if (safeName != null && safeName != "UnknownContact" && safeName != "Unknown") {
+        "Call_${safeName}_${safeNumber}_$timeStamp.m4a"
+    } else {
+        "Call_${safeNumber}_$timeStamp.m4a"
+    }
+
+    // Determine output destination
+    val resolver = context.contentResolver
+    var audioUri: android.net.Uri? = null
+    var fallbackFile: File? = null
+
+    fun getOutputFileDescriptor(): java.io.FileDescriptor? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "audio/mp4")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/CallRecordings")
+            }
+            audioUri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
+            return audioUri?.let { resolver.openFileDescriptor(it, "w")?.fileDescriptor }
+        } else {
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+            if (!dir.exists()) { dir.mkdirs() }
+            fallbackFile = File(dir, fileName)
+            return java.io.FileInputStream(fallbackFile).fd // Actually we need path, but we handle it below
+        }
+    }
+
+    fun getOutputFilePath(): String? {
+       return fallbackFile?.absolutePath
+    }
+
+    fun cleanUpFailedFile() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            audioUri?.let { resolver.delete(it, null, null) }
+        } else {
+            fallbackFile?.delete()
+        }
+    }
+
+    // Try sources in order of preference for two-way audio (earpiece, speaker, etc)
+    val audioSources = listOf(
+        MediaRecorder.AudioSource.VOICE_CALL,          // Best for both sides, highly restricted
+        MediaRecorder.AudioSource.VOICE_COMMUNICATION, // Echo cancellation, good for speaker/headset
+        MediaRecorder.AudioSource.VOICE_RECOGNITION,   // Often bypasses AGC/filters
+        MediaRecorder.AudioSource.MIC                  // Absolute fallback, relies on ambient sound if not speaker
+    )
+
+    var successfulRecorder: MediaRecorder? = null
+    var usedSource = -1
+
+    for (source in audioSources) {
         val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             MediaRecorder(context)
         } else {
@@ -321,57 +378,50 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
             MediaRecorder()
         }
 
-        // For third-party apps, MIC or VOICE_COMMUNICATION are the only reliable sources.
-        // VOICE_CALL is heavily restricted by OEMs and usually throws RuntimeException on start() or prepare().
-        // To get both sides, users typically need to use speakerphone with MIC/VOICE_COMMUNICATION.
-        recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
-        recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+        try {
+            recorder.setAudioSource(source)
+            recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
 
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-
-        // Format the file name based on whether we have a contact name or just a number
-        val safeName = callerName.replace(Regex("[^a-zA-Z0-9]"), "").takeIf { it.isNotBlank() }
-        val safeNumber = phoneNumber.replace(Regex("[^0-9+]"), "").takeIf { it.isNotBlank() } ?: "Unknown"
-
-        val fileName = if (safeName != null && safeName != "UnknownContact" && safeName != "Unknown") {
-            "Call_${safeName}_${safeNumber}_$timeStamp.m4a"
-        } else {
-            "Call_${safeNumber}_$timeStamp.m4a"
-        }
-
-        // Use MediaStore for Android Q and above, fallback to File for older versions
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val resolver = context.contentResolver
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "audio/mp4")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/CallRecordings")
-            }
-            val audioUri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
-            if (audioUri != null) {
-                val pfd = resolver.openFileDescriptor(audioUri, "w")
-                recorder.setOutputFile(pfd?.fileDescriptor)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val fd = getOutputFileDescriptor()
+                if (fd != null) recorder.setOutputFile(fd) else throw Exception("FD is null")
             } else {
-                throw Exception("Failed to create MediaStore entry")
+                getOutputFileDescriptor() // sets fallbackFile
+                recorder.setOutputFile(getOutputFilePath())
             }
-        } else {
-            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-            if (!dir.exists()) { dir.mkdirs() }
-            val file = File(dir, fileName)
-            recorder.setOutputFile(file.absolutePath)
+
+            // The prepare() and start() methods are where it throws if the source is blocked by the OS
+            recorder.prepare()
+            recorder.start()
+
+            successfulRecorder = recorder
+            usedSource = source
+            break // Success! Exit the loop.
+        } catch (e: Exception) {
+            // Failed, clean up this attempt
+            recorder.reset()
+            recorder.release()
+            cleanUpFailedFile()
+        }
+    }
+
+    if (successfulRecorder != null) {
+        setRecorder(successfulRecorder)
+        setRecordingState()
+
+        val sourceName = when(usedSource) {
+            MediaRecorder.AudioSource.VOICE_CALL -> "VOICE_CALL"
+            MediaRecorder.AudioSource.VOICE_COMMUNICATION -> "VOICE_COMMUNICATION"
+            MediaRecorder.AudioSource.VOICE_RECOGNITION -> "VOICE_RECOGNITION"
+            MediaRecorder.AudioSource.MIC -> "MIC"
+            else -> "UNKNOWN"
         }
 
-        recorder.prepare()
-        recorder.start()
-
-        setRecorder(recorder)
-        setRecordingState()
-        // Inform user about speakerphone requirement for two-way audio on third-party apps
-        Toast.makeText(context, "Recording started. Enable speaker for two-way audio.", Toast.LENGTH_LONG).show()
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(context, "Failed to start recording: ${e.message}", Toast.LENGTH_SHORT).show()
+        val extraMsg = if (usedSource == MediaRecorder.AudioSource.MIC) " (Enable speaker for 2-way)" else ""
+        Toast.makeText(context, "Recording ($sourceName) to Music/$fileName$extraMsg", Toast.LENGTH_LONG).show()
+    } else {
+        Toast.makeText(context, "All recording sources failed or are blocked by OS.", Toast.LENGTH_LONG).show()
     }
 }
 
