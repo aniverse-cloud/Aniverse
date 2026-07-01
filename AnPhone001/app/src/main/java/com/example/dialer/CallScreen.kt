@@ -320,7 +320,13 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
             @Suppress("DEPRECATION")
             MediaRecorder()
         }
-        recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+        try {
+            // Attempt to record both uplink (microphone) and downlink (speaker)
+            recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_CALL)
+        } catch (e: Exception) {
+            // Fallback to VOICE_COMMUNICATION or MIC if system prevents VOICE_CALL
+            recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+        }
         recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
 
