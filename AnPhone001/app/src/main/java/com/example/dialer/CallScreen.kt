@@ -10,6 +10,8 @@ import android.os.Environment
 import android.telecom.Call
 import android.telecom.PhoneAccountHandle
 import android.telecom.TelecomManager
+import android.content.ContentValues
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -334,14 +336,28 @@ private fun startRecording(context: Context, callerName: String, phoneNumber: St
             "Call_${safeNumber}_$timeStamp.m4a"
         }
 
-        // Save to public Music directory so it's accessible
-        val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-        if (!dir.exists()) {
-            dir.mkdirs()
+        // Use MediaStore for Android Q and above, fallback to File for older versions
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "audio/mp4")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/CallRecordings")
+            }
+            val audioUri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
+            if (audioUri != null) {
+                val pfd = resolver.openFileDescriptor(audioUri, "w")
+                recorder.setOutputFile(pfd?.fileDescriptor)
+            } else {
+                throw Exception("Failed to create MediaStore entry")
+            }
+        } else {
+            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+            if (!dir.exists()) { dir.mkdirs() }
+            val file = File(dir, fileName)
+            recorder.setOutputFile(file.absolutePath)
         }
-        val file = File(dir, fileName)
 
-        recorder.setOutputFile(file.absolutePath)
         recorder.prepare()
         recorder.start()
 
