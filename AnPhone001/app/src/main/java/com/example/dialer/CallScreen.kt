@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
@@ -70,8 +71,8 @@ fun CallScreen(navController: NavController? = null) {
                                         CallManager.setAudioRoute(route)
                                     } else {
                                         // Fallback
-                                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                                        am.isSpeakerphoneOn = isSpeakerOn
+                                        val callService = CallManager.inCallService
+                                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager; am.isSpeakerphoneOn = isSpeakerOn
                                     }
              })
         } else {
@@ -177,8 +178,8 @@ fun CallScreen(navController: NavController? = null) {
                                         CallManager.setAudioRoute(route)
                                     } else {
                                         // Fallback
-                                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                                        am.isSpeakerphoneOn = isSpeakerOn
+                                        val callService = CallManager.inCallService
+                                        val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager; am.isSpeakerphoneOn = isSpeakerOn
                                     }
                                      })
                                 } else {
@@ -209,13 +210,16 @@ fun CallScreen(navController: NavController? = null) {
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     CallActionButton(
-                        icon = Icons.Filled.Close, // Mute icon
+                        icon = Icons.Filled.MicOff,
                         label = "Mute",
                         isActive = isMuted,
                         onClick = {
                             isMuted = !isMuted
-                            val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                            am.isMicrophoneMute = isMuted
+                            val callService = CallManager.inCallService
+                            if (callService != null) callService.setMuted(isMuted) else {
+                                val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                                am.isMicrophoneMute = isMuted
+                            }
                         }
                     )
                     CallActionButton(
@@ -236,8 +240,8 @@ fun CallScreen(navController: NavController? = null) {
                                 CallManager.setAudioRoute(route)
                             } else {
                                 // Fallback
-                                val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                                am.isSpeakerphoneOn = isSpeakerOn
+                                val callService = CallManager.inCallService
+                                val am = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager; am.isSpeakerphoneOn = isSpeakerOn
                             }
                         }
                     )

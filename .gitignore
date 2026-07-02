@@ -26,3 +26,6 @@ AnPhone001/.gradle
 AnPhone001/build
 AnPhone001.apk
 AnPhone001.apk.idsig
+*.jks
+*.apk
+*.idsig
