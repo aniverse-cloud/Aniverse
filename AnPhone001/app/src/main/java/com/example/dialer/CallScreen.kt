@@ -150,7 +150,7 @@ fun CallScreen(navController: NavController? = null) {
 
         // Action grid (Record, Hold, Mute, etc)
         // We only show these if the call is active or connected
-        if (state == android.telecom.Call.STATE_ACTIVE || state == android.telecom.Call.STATE_HOLDING || state == android.telecom.Call.STATE_DIALING) {
+        if (state != android.telecom.Call.STATE_RINGING && state != android.telecom.Call.STATE_DISCONNECTED) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(24.dp)

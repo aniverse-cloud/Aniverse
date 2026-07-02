@@ -159,7 +159,7 @@ fun DialerApp(navController: NavHostController) {
         }
 
         NavHost(navController, startDestination = Screen.Dialer.route, modifier) {
-            composable(Screen.Dialer.route) { DialerScreen() }
+            composable(Screen.Dialer.route) { DialerScreen(navController) }
             composable(Screen.Recents.route) { RecentsScreen() }
             composable(Screen.Contacts.route) { ContactsScreen() }
             composable(Screen.CallScreen.route) { CallScreen(navController) }
