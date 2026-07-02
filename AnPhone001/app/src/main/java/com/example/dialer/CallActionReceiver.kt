@@ -15,14 +15,6 @@ class CallActionReceiver : BroadcastReceiver() {
 
         if (call != null) {
             when (action) {
-                "ACTION_ANSWER_CALL" -> {
-                    call.answer(call.details.videoState)
-                    val callIntent = Intent(context, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                        putExtra("SHOW_CALL_SCREEN", true)
-                    }
-                    context.startActivity(callIntent)
-                }
                 "ACTION_DECLINE_CALL" -> {
                     call.disconnect()
                 }

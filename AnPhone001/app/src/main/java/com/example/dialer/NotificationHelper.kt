@@ -38,6 +38,7 @@ object NotificationHelper {
         val fullScreenIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("SHOW_CALL_SCREEN", true)
+            action = "ACTION_SHOW_CALL_SCREEN"
         }
         val fullScreenPendingIntent = PendingIntent.getActivity(
             context,
@@ -46,10 +47,16 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val answerIntent = Intent(context, CallActionReceiver::class.java).apply {
+        // Tapping the notification body should do the same as full screen intent
+        val contentIntent = fullScreenPendingIntent
+
+        // Action Answer: Launch MainActivity directly instead of going through a receiver
+        val answerIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             action = "ACTION_ANSWER_CALL"
+            putExtra("SHOW_CALL_SCREEN", true)
         }
-        val answerPendingIntent = PendingIntent.getBroadcast(
+        val answerPendingIntent = PendingIntent.getActivity(
             context,
             1,
             answerIntent,
@@ -72,9 +79,10 @@ object NotificationHelper {
             .setContentText(callerNumber)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setAutoCancel(true)
+            .setAutoCancel(false)
             .setOngoing(true)
             .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setContentIntent(contentIntent)
             .addAction(android.R.drawable.ic_menu_call, "Answer", answerPendingIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Decline", declinePendingIntent)
             .build()
