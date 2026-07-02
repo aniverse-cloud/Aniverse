@@ -10,7 +10,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -100,7 +100,7 @@ fun DialerScreen(navController: NavController? = null) {
                 },
                 modifier = Modifier.size(48.dp)
             ) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Backspace")
+                Icon(Icons.Filled.Backspace, contentDescription = "Delete last digit")
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
