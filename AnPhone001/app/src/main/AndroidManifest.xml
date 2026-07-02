@@ -14,7 +14,7 @@
         android:label="Dialer"
         android:roundIcon="@drawable/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.DeviceDefault.Light">
+        android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar">
 
         <activity
             android:name=".MainActivity"
