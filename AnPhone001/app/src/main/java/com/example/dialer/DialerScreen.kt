@@ -171,7 +171,10 @@ fun DialerScreen(navController: NavController? = null) {
                                 context.startActivity(intent)
                             }
                         },
-                        headlineContent = { Text(item.name, fontWeight = FontWeight.Bold) },
+                        headlineContent = {
+                            val headlineText = if (item.name.isEmpty()) item.number else item.name
+                            Text(headlineText, fontWeight = FontWeight.Bold)
+                        },
                         supportingContent = {
                             val subText = if (item.isRecentCall && item.date != null && item.type != null) {
                                 "${item.number} • ${item.date} • ${getCallTypeString(item.type)}"
