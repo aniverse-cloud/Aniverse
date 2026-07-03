@@ -110,8 +110,7 @@ fun DialerAppTheme(content: @Composable () -> Unit) {
 }
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
-    object Dialer : Screen("dialer", "Keypad", Icons.Filled.Phone)
-    object Recents : Screen("recents", "Recents", Icons.Filled.Call)
+    object Dialer : Screen("dialer", "Dial", Icons.Filled.Phone)
     object Contacts : Screen("contacts", "Contacts", Icons.Filled.Person)
     object CallScreen : Screen("call_screen", "Call", Icons.Filled.Phone)
 }
@@ -120,7 +119,6 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 fun DialerApp(navController: NavHostController) {
     val items = listOf(
         Screen.Dialer,
-        Screen.Recents,
         Screen.Contacts
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -160,7 +158,6 @@ fun DialerApp(navController: NavHostController) {
 
         NavHost(navController, startDestination = Screen.Dialer.route, modifier) {
             composable(Screen.Dialer.route) { DialerScreen(navController) }
-            composable(Screen.Recents.route) { RecentsScreen() }
             composable(Screen.Contacts.route) { ContactsScreen() }
             composable(Screen.CallScreen.route) { CallScreen(navController) }
         }
