@@ -29,7 +29,7 @@ object NotificationHelper {
         }
     }
 
-    fun showIncomingCallNotification(context: Context, call: Call) {
+    fun showCallNotification(context: Context, call: Call) {
         createNotificationChannel(context)
 
         val callerName = "Incoming Call"
@@ -73,22 +73,32 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val isRinging = call.state == Call.STATE_RINGING
+        val isOngoing = call.state == Call.STATE_ACTIVE || call.state == Call.STATE_DIALING
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.sym_action_call)
-            .setContentTitle(callerName)
+            .setContentTitle(if (isOngoing) "Ongoing Call" else callerName)
             .setContentText(callerNumber)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_CALL)
             .setAutoCancel(false)
             .setOngoing(true)
-            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setColorized(true)
             .setContentIntent(contentIntent)
-            .addAction(android.R.drawable.ic_menu_call, "Answer", answerPendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Decline", declinePendingIntent)
-            .build()
+
+        if (isRinging) {
+            builder.setColor(android.graphics.Color.parseColor("#FF9800")) // Orange
+            builder.setFullScreenIntent(fullScreenPendingIntent, true)
+            builder.addAction(android.R.drawable.ic_menu_call, "Answer", answerPendingIntent)
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Decline", declinePendingIntent)
+        } else {
+            builder.setColor(android.graphics.Color.parseColor("#4CAF50")) // Green
+        }
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(NOTIFICATION_ID, notification)
+        notificationManager.notify(NOTIFICATION_ID, builder.build())
+
     }
 
     fun cancelNotification(context: Context) {
