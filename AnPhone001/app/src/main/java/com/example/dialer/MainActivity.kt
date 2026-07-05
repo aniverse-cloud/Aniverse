@@ -160,6 +160,16 @@ fun DialerApp(navController: NavHostController) {
             composable(Screen.Dialer.route) { DialerScreen(navController) }
             composable(Screen.Contacts.route) { ContactsScreen() }
             composable(Screen.CallScreen.route) { CallScreen(navController) }
+            composable(
+                route = "call_detail/{number}/{name}"
+            ) { backStackEntry ->
+                val number = backStackEntry.arguments?.getString("number") ?: ""
+                val name = backStackEntry.arguments?.getString("name") ?: ""
+                // To display CallDetailScreen, we can reconstruct the recent logs or fetch them.
+                // Since this is a simple UX flow, we can just display the UI. Ideally we'd pass a SharedViewModel.
+                // For now, we will just fetch the specific logs in the Composable or pass the basics.
+                CallDetailScreenWrapper(navController, number, name)
+            }
         }
     }
 }

@@ -18,6 +18,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Dialpad
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,7 +43,15 @@ data class ContactOrCall(
     val number: String,
     val date: String? = null,
     val type: Int? = null,
-    val isRecentCall: Boolean = true
+    val isRecentCall: Boolean = true,
+    val count: Int = 1,
+    val logs: List<CallLogEntry> = emptyList()
+)
+
+data class CallLogEntry(
+    val date: String,
+    val type: Int,
+    val dateMillis: Long
 )
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -87,10 +98,17 @@ fun DialerScreen(navController: NavController? = null) {
                     val formatter = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
                     val dateString = formatter.format(Date(dateMillis))
 
-                    fetchedCalls.add(ContactOrCall(name, number, dateString, type, true))
+                    fetchedCalls.add(ContactOrCall(name, number, dateString, type, true, 1, listOf(CallLogEntry(dateString, type, dateMillis))))
                 }
             }
-            recentCalls = fetchedCalls
+
+            // Group by number
+            val grouped = fetchedCalls.groupBy { it.number }.map { (num, calls) ->
+                val first = calls.first()
+                val allLogs = calls.flatMap { it.logs }.sortedByDescending { it.dateMillis }
+                first.copy(count = calls.size, logs = allLogs)
+            }
+            recentCalls = grouped
 
             // Fetch Contacts
             val cursorContacts = contentResolver.query(
@@ -173,18 +191,25 @@ fun DialerScreen(navController: NavController? = null) {
                         },
                         headlineContent = {
                             val headlineText = if (item.name.isEmpty()) item.number else item.name
-                            Text(headlineText, fontWeight = FontWeight.Bold)
+                            val countText = if (item.count > 1) " (${item.count})" else ""
+                            Text("$headlineText$countText", fontWeight = FontWeight.Bold)
                         },
                         supportingContent = {
                             val subText = if (item.isRecentCall && item.date != null && item.type != null) {
-                                "${item.number} • ${item.date} • ${getCallTypeString(item.type)}"
+                                "${item.number} • ${item.date}" // Removed call type to save space, but can keep if wanted
                             } else {
                                 item.number
                             }
                             Text(subText)
                         },
                         trailingContent = {
-                            Icon(Icons.Filled.Call, contentDescription = "Call ${item.name}")
+                            IconButton(
+                                onClick = {
+                                    navController?.navigate("call_detail/${item.number}/${Uri.encode(item.name)}")
+                                }
+                            ) {
+                                Icon(Icons.Outlined.Info, contentDescription = "Info for ${item.name}")
+                            }
                         }
                     )
                     Divider()
@@ -267,7 +292,7 @@ fun DialerScreen(navController: NavController? = null) {
                     .padding(16.dp),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             ) {
-                Icon(Icons.Filled.Dialpad, contentDescription = "Hide Keypad") // Could use a downward arrow instead
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Hide Keypad")
             }
         }
     }
