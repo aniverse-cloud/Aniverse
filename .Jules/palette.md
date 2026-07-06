@@ -1,0 +1,3 @@
+## 2024-07-06 - Improve Accessibility of Icon Buttons in Compose
+**Learning:** Using `Icon(modifier = Modifier.clickable(...))` creates accessible touch targets but does not enforce the 48dp minimum touch target recommended by Material Design guidelines and lacks proper bounded circular ripples, leading to a suboptimal and sometimes visually unappealing experience.
+**Action:** Always prefer `IconButton` over `Icon(modifier = Modifier.clickable(...))` for standalone, clickable icons in Jetpack Compose to automatically provide standard minimum touch targets and appropriate circular ripples for better accessibility and user feedback.
