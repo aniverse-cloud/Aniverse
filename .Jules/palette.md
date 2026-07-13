@@ -9,3 +9,7 @@
 ## 2023-10-27 - Grouped List Items UX
 **Learning:** For a recent calls list, displaying an individual row for every single call log rapidly clutters the UI and requires excessive scrolling. Grouping calls by contact/number and presenting a single entry with a summarized call count significantly improves scannability. Furthermore, using a trailing "Info" icon (`IconButton` with `Icons.Outlined.Info`) establishes a clear, standard pattern for users to navigate to detailed historical context without overwhelming the primary dialing interaction.
 **Action:** When designing history/log-based lists, prioritize data grouping (e.g., by entity or time block) and provide secondary discovery mechanisms (like detail screens) rather than flattening all data into the root view.
+
+## 2024-05-24 - Animated Floating Navigation Bar
+**Learning:** Standard bottom navigation bars can feel rigid. Replacing them with a floating, pill-shaped surface with smooth color transitions (`animateColorAsState`) for active/inactive states makes the navigation feel much more fluid and modern, drawing user focus effectively.
+**Action:** Use animated floating navigation pills for top-level navigation where visual flair and a non-obtrusive, modern UI pattern is desired over standard edge-to-edge bottom bars.
