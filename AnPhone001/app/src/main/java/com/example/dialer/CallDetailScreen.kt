@@ -78,7 +78,7 @@ fun CallDetailScreen(
             ) {
                 Icon(
                     Icons.Filled.Person,
-                    contentDescription = null,
+                    contentDescription = "Contact avatar",
                     modifier = Modifier.size(60.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

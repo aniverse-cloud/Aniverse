@@ -56,7 +56,7 @@ data class CallLogEntry(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun DialerScreen(navController: NavController? = null) {
+fun DialerScreen(navController: NavController? = null, innerPadding: PaddingValues = PaddingValues(0.dp)) {
     var phoneNumber by remember { mutableStateOf("") }
     var isKeypadVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -103,7 +103,7 @@ fun DialerScreen(navController: NavController? = null) {
             }
 
             // Group by number
-            val grouped = fetchedCalls.groupBy { it.number }.map { (num, calls) ->
+            val grouped = fetchedCalls.groupBy { it.number }.map { (_, calls) ->
                 val first = calls.first()
                 val allLogs = calls.flatMap { it.logs }.sortedByDescending { it.dateMillis }
                 first.copy(count = calls.size, logs = allLogs)
@@ -177,7 +177,8 @@ fun DialerScreen(navController: NavController? = null) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .weight(1f),
+                contentPadding = innerPadding
             ) {
                 items(displayList) { item ->
                     ListItem(
@@ -221,7 +222,7 @@ fun DialerScreen(navController: NavController? = null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = innerPadding.calculateBottomPadding() + 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val keys = listOf(
@@ -278,7 +279,7 @@ fun DialerScreen(navController: NavController? = null) {
                 onClick = { isKeypadVisible = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp),
+                    .padding(bottom = innerPadding.calculateBottomPadding() + 16.dp, end = 16.dp),
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(Icons.Filled.Dialpad, contentDescription = "Open Keypad")
@@ -289,7 +290,7 @@ fun DialerScreen(navController: NavController? = null) {
                 onClick = { isKeypadVisible = false },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp),
+                    .padding(bottom = innerPadding.calculateBottomPadding() + 16.dp, end = 16.dp),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Hide Keypad")

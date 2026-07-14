@@ -20,7 +20,7 @@ data class Contact(val name: String, val number: String)
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun ContactsScreen() {
+fun ContactsScreen(innerPadding: PaddingValues = PaddingValues(0.dp)) {
     val context = LocalContext.current
     val permissionState = rememberPermissionState(Manifest.permission.READ_CONTACTS)
     var contacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
@@ -59,7 +59,8 @@ fun ContactsScreen() {
         return
     }
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        contentPadding = innerPadding,modifier = Modifier.fillMaxSize()) {
         items(contacts) { contact ->
             ListItem(
                 headlineContent = { Text(contact.name, fontWeight = FontWeight.Bold) },
