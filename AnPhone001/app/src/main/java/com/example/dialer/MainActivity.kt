@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +34,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -206,16 +208,29 @@ fun FloatingNavigationBar(
         contentAlignment = Alignment.Center
     ) {
         // Implement glassmorphism-like background overlay effect
-        Surface(
-            shape = CircleShape,
-            shadowElevation = 8.dp,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+            // Background blur layer
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(CircleShape)
+                    .blur(16.dp)
+                    .background(Color(0xCCFFFFFF)) // Milky white effect
+            )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = CircleShape,
+                shadowElevation = 8.dp,
+                color = Color.Transparent
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                 items.forEach { screen ->
                     val selected = currentRoute == screen.route
                     val backgroundColor by animateColorAsState(
@@ -229,10 +244,11 @@ fun FloatingNavigationBar(
 
                     Row(
                         modifier = Modifier
+                            .weight(1f)
                             .clip(CircleShape)
                             .background(backgroundColor)
                             .clickable { onItemClick(screen) }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 8.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
@@ -244,13 +260,15 @@ fun FloatingNavigationBar(
                         AnimatedVisibility(visible = selected) {
                             Text(
                                 text = screen.title,
-                                modifier = Modifier.padding(start = 8.dp),
+                                modifier = Modifier.padding(start = 4.dp),
                                 color = contentColor,
-                                style = MaterialTheme.typography.labelLarge
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1
                             )
                         }
                     }
                 }
+            }
             }
         }
     }

@@ -222,7 +222,7 @@ fun DialerScreen(navController: NavController? = null, innerPadding: PaddingValu
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = innerPadding.calculateBottomPadding() + 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val keys = listOf(
@@ -279,7 +279,7 @@ fun DialerScreen(navController: NavController? = null, innerPadding: PaddingValu
                 onClick = { isKeypadVisible = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp),
+                    .padding(bottom = innerPadding.calculateBottomPadding() + 16.dp, end = 16.dp),
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(Icons.Filled.Dialpad, contentDescription = "Open Keypad")
@@ -290,7 +290,7 @@ fun DialerScreen(navController: NavController? = null, innerPadding: PaddingValu
                 onClick = { isKeypadVisible = false },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp),
+                    .padding(bottom = innerPadding.calculateBottomPadding() + 16.dp, end = 16.dp),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Hide Keypad")
