@@ -13,3 +13,7 @@
 ## 2024-05-24 - Animated Floating Navigation Bar
 **Learning:** Standard bottom navigation bars can feel rigid. Replacing them with a floating, pill-shaped surface with smooth color transitions (`animateColorAsState`) for active/inactive states makes the navigation feel much more fluid and modern, drawing user focus effectively.
 **Action:** Use animated floating navigation pills for top-level navigation where visual flair and a non-obtrusive, modern UI pattern is desired over standard edge-to-edge bottom bars.
+
+## 2024-05-24 - Glassmorphism UI Padding and Overlays
+**Learning:** When using edge-to-edge drawing and floating UI elements (like a navigation pill) with glassmorphism (semi-transparent overlays), it's crucial to properly pass the Scaffold's `innerPadding` down to the lists (like `LazyColumn` via `contentPadding`) and FABs. Otherwise, list content hides behind the overlay, making the last elements unreachable or visually confusing.
+**Action:** Always ensure `contentPadding` handles bottom insets when using floating/blurred bottom bars rather than padding the entire NavHost.

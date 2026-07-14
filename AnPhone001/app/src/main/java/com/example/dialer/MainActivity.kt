@@ -23,7 +23,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -164,15 +167,14 @@ fun DialerApp(navController: NavHostController) {
         }
     ) { innerPadding ->
         // On CallScreen, we ignore inner padding to allow full edge-to-edge drawing
-        val modifier = if (currentRoute == Screen.CallScreen.route) {
-            Modifier
-        } else {
-            Modifier.padding(innerPadding)
-        }
+        // We pass the modifier as-is because we are sending innerPadding into screens
+        // rather than padding the entire NavHost (which prevents glassmorphism overlay effects).
+        val modifier = Modifier
 
         NavHost(navController, startDestination = Screen.Dialer.route, modifier) {
-            composable(Screen.Dialer.route) { DialerScreen(navController) }
-            composable(Screen.Contacts.route) { ContactsScreen() }
+            // Pass innerPadding down so bottom lists are not obscured by the floating nav bar
+            composable(Screen.Dialer.route) { DialerScreen(navController = navController, innerPadding = innerPadding) }
+            composable(Screen.Contacts.route) { ContactsScreen(innerPadding = innerPadding) }
             composable(Screen.Settings.route) { SettingsScreen() }
             composable(Screen.Profile.route) { ProfileScreen() }
             composable(Screen.CallScreen.route) { CallScreen(navController) }
@@ -199,13 +201,15 @@ fun FloatingNavigationBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Implement glassmorphism-like background overlay effect
         Surface(
             shape = CircleShape,
             shadowElevation = 8.dp,
-            color = MaterialTheme.colorScheme.surfaceVariant
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
