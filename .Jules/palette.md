@@ -17,3 +17,7 @@
 ## 2026-07-14 - Accessibility Image Placeholders
 **Learning:** Setting `contentDescription = null` for user profile/avatar icons is inaccessible. Even generic placeholders (like a default `Person` icon) convey important information to screen reader users (that this area represents a user profile/avatar).
 **Action:** Always provide descriptive `contentDescription` text (e.g., "Contact avatar") for decorative or fallback icons used in place of user imagery.
+
+## 2026-07-15 - Unread Missed Call Counting UX
+**Learning:** Displaying simply the total number of historical calls for a contact is not as useful as highlighting unread or un-addressed interactions. Calculating a consecutive missed call count by reading descending call logs until a successful connection (incoming, outgoing, or active rejection) provides a dynamic 'unread' state. Applying conditional red text (error styling) creates immediate urgency for the user to address missed interactions.
+**Action:** When designing communication lists, use dynamic semantic colors (like red for unread missed calls) and ensure the logic 'resets' the state gracefully when the user takes an action that acknowledges the history.
