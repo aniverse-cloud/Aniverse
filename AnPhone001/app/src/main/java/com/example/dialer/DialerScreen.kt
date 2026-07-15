@@ -7,6 +7,15 @@ import android.net.Uri
 import android.provider.CallLog
 import android.provider.ContactsContract
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -56,10 +65,18 @@ data class CallLogEntry(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun DialerScreen(navController: NavController? = null, innerPadding: PaddingValues = PaddingValues(0.dp)) {
+fun DialerScreen(
+    navController: NavController? = null,
+    innerPadding: PaddingValues = PaddingValues(0.dp),
+    onKeypadVisibilityChange: ((Boolean) -> Unit)? = null
+) {
     var phoneNumber by remember { mutableStateOf("") }
     var isKeypadVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    LaunchedEffect(isKeypadVisible) {
+        onKeypadVisibilityChange?.invoke(isKeypadVisible)
+    }
 
     val permissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
@@ -151,7 +168,11 @@ fun DialerScreen(navController: NavController? = null, innerPadding: PaddingValu
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header for Input if keypad is visible
-            if (isKeypadVisible) {
+            AnimatedVisibility(
+                visible = isKeypadVisible,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -218,7 +239,11 @@ fun DialerScreen(navController: NavController? = null, innerPadding: PaddingValu
             }
 
             // Keypad at the bottom
-            if (isKeypadVisible) {
+            AnimatedVisibility(
+                visible = isKeypadVisible,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -274,23 +299,28 @@ fun DialerScreen(navController: NavController? = null, innerPadding: PaddingValu
         }
 
         // FAB to show keypad when hidden
-        if (!isKeypadVisible) {
+        AnimatedVisibility(
+            visible = !isKeypadVisible,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = innerPadding.calculateBottomPadding() + 16.dp, end = 16.dp),
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut()
+        ) {
             FloatingActionButton(
                 onClick = { isKeypadVisible = true },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = innerPadding.calculateBottomPadding() + 16.dp, end = 16.dp),
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(Icons.Filled.Dialpad, contentDescription = "Open Keypad")
             }
-        } else if (phoneNumber.isEmpty()) {
-            // Button to hide keypad when it's empty
+        }
+
+        AnimatedVisibility(
+            visible = isKeypadVisible && phoneNumber.isEmpty(),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = innerPadding.calculateBottomPadding() + 16.dp, end = 16.dp),
+            enter = scaleIn() + fadeIn(),
+            exit = scaleOut() + fadeOut()
+        ) {
             FloatingActionButton(
                 onClick = { isKeypadVisible = false },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = innerPadding.calculateBottomPadding() + 16.dp, end = 16.dp),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Hide Keypad")

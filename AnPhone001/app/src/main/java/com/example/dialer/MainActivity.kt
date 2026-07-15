@@ -16,6 +16,10 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
@@ -149,10 +153,16 @@ fun DialerApp(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    var isBottomBarVisible by remember { mutableStateOf(true) }
+
     Scaffold(
         bottomBar = {
             // Show bottom bar only on top-level screens
-            if (currentRoute in items.map { it.route }) {
+            AnimatedVisibility(
+                visible = isBottomBarVisible && currentRoute in items.map { it.route },
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            ) {
                 FloatingNavigationBar(
                     items = items,
                     currentRoute = currentRoute,
@@ -176,7 +186,13 @@ fun DialerApp(navController: NavHostController) {
 
         NavHost(navController, startDestination = Screen.Dialer.route, modifier) {
             // Pass innerPadding down so bottom lists are not obscured by the floating nav bar
-            composable(Screen.Dialer.route) { DialerScreen(navController = navController, innerPadding = innerPadding) }
+            composable(Screen.Dialer.route) {
+                DialerScreen(
+                    navController = navController,
+                    innerPadding = innerPadding,
+                    onKeypadVisibilityChange = { visible -> isBottomBarVisible = !visible }
+                )
+            }
             composable(Screen.Contacts.route) { ContactsScreen(innerPadding = innerPadding) }
             composable(Screen.Settings.route) { SettingsScreen() }
             composable(Screen.Profile.route) { ProfileScreen() }
