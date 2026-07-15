@@ -54,7 +54,8 @@ data class ContactOrCall(
     val type: Int? = null,
     val isRecentCall: Boolean = true,
     val count: Int = 1,
-    val logs: List<CallLogEntry> = emptyList()
+    val logs: List<CallLogEntry> = emptyList(),
+    val unreadMissedCount: Int = 0 // Added missed call count UX
 )
 
 data class CallLogEntry(
@@ -119,7 +120,18 @@ fun DialerScreen(
             val grouped = fetchedCalls.groupBy { it.number }.map { (_, calls) ->
                 val first = calls.first()
                 val allLogs = calls.flatMap { it.logs }.sortedByDescending { it.dateMillis }
-                first.copy(count = calls.size, logs = allLogs)
+
+                // Calculate unread missed calls
+                var unreadMissed = 0
+                for (log in allLogs) {
+                    if (log.type == CallLog.Calls.MISSED_TYPE) {
+                        unreadMissed++
+                    } else if (log.type == CallLog.Calls.INCOMING_TYPE || log.type == CallLog.Calls.OUTGOING_TYPE || log.type == CallLog.Calls.REJECTED_TYPE) {
+                        break // Stop counting if there's a successful or rejected call
+                    }
+                }
+
+                first.copy(count = calls.size, logs = allLogs, unreadMissedCount = unreadMissed)
             }
             recentCalls = grouped
 
@@ -209,8 +221,13 @@ fun DialerScreen(
                         },
                         headlineContent = {
                             val headlineText = if (item.name.isEmpty()) item.number else item.name
-                            val countText = if (item.count > 1) " (${item.count})" else ""
-                            Text("$headlineText$countText", fontWeight = FontWeight.Bold)
+                            val countText = if (item.unreadMissedCount > 0) " (${item.unreadMissedCount})" else if (item.count > 1) " (${item.count})" else ""
+                            val textColor = if (item.unreadMissedCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                            Text(
+                                text = "$headlineText$countText",
+                                fontWeight = FontWeight.Bold,
+                                color = textColor // Missed call red text UX
+                            )
                         },
                         supportingContent = {
                             val subText = if (item.isRecentCall && item.date != null && item.type != null) {
