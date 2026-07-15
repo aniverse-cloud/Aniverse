@@ -39,7 +39,6 @@ import androidx.compose.runtime.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -153,20 +152,23 @@ fun DialerApp(navController: NavHostController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    var isBottomBarVisible by remember { mutableStateOf(true) }
+    // Explicitly hoist keypad state here to fix navigation bar disappear issue reliably
+    var isKeypadVisible by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
-            // Show bottom bar only on top-level screens
+            // Show bottom bar only on top-level screens and when keypad is NOT visible
+            val showBottomBar = !isKeypadVisible && (currentRoute in items.map { it.route })
             AnimatedVisibility(
-                visible = isBottomBarVisible && currentRoute in items.map { it.route },
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                visible = showBottomBar,
+                enter = slideInVertically(initialOffsetY = { it }, animationSpec = tween(250)) + fadeIn(animationSpec = tween(250)),
+                exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(250)) + fadeOut(animationSpec = tween(250))
             ) {
                 FloatingNavigationBar(
                     items = items,
                     currentRoute = currentRoute,
                     onItemClick = { screen ->
+                        isKeypadVisible = false // Close keypad when switching tabs
                         navController.navigate(screen.route) {
                             popUpTo(navController.graph.findStartDestination().id) {
                                 saveState = true
@@ -179,18 +181,15 @@ fun DialerApp(navController: NavHostController) {
             }
         }
     ) { innerPadding ->
-        // On CallScreen, we ignore inner padding to allow full edge-to-edge drawing
-        // We pass the modifier as-is because we are sending innerPadding into screens
-        // rather than padding the entire NavHost (which prevents glassmorphism overlay effects).
         val modifier = Modifier
 
         NavHost(navController, startDestination = Screen.Dialer.route, modifier) {
-            // Pass innerPadding down so bottom lists are not obscured by the floating nav bar
             composable(Screen.Dialer.route) {
                 DialerScreen(
                     navController = navController,
                     innerPadding = innerPadding,
-                    onKeypadVisibilityChange = { visible -> isBottomBarVisible = !visible }
+                    isKeypadVisible = isKeypadVisible,
+                    onKeypadVisibilityChange = { visible -> isKeypadVisible = visible }
                 )
             }
             composable(Screen.Contacts.route) { ContactsScreen(innerPadding = innerPadding) }
@@ -224,44 +223,32 @@ fun FloatingNavigationBar(
             .padding(horizontal = 16.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Implement glassmorphism-like background overlay effect
-        Box(
+        // Removed heavy 'blur' modifier for low-end phone optimization
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            shape = CircleShape,
+            shadowElevation = 8.dp,
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f) // Optimized transparent look
         ) {
-            // Background blur layer
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(CircleShape)
-                    .blur(16.dp)
-                    .background(Color(0xCCFFFFFF)) // Milky white effect
-            )
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = CircleShape,
-                shadowElevation = 8.dp,
-                color = Color.Transparent
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
                 items.forEach { screen ->
                     val selected = currentRoute == screen.route
                     val backgroundColor by animateColorAsState(
                         targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                        animationSpec = tween(durationMillis = 300)
+                        animationSpec = tween(durationMillis = 200) // Faster animation for low-end
                     )
                     val contentColor by animateColorAsState(
                         targetValue = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                        animationSpec = tween(durationMillis = 300)
+                        animationSpec = tween(durationMillis = 200)
                     )
 
                     val itemWeight by animateFloatAsState(
                         targetValue = if (selected) 2f else 1f,
-                        animationSpec = tween(durationMillis = 300)
+                        animationSpec = tween(durationMillis = 200)
                     )
 
                     Row(
@@ -290,7 +277,6 @@ fun FloatingNavigationBar(
                         }
                     }
                 }
-            }
             }
         }
     }

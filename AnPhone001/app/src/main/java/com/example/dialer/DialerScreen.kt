@@ -68,15 +68,11 @@ data class CallLogEntry(
 fun DialerScreen(
     navController: NavController? = null,
     innerPadding: PaddingValues = PaddingValues(0.dp),
+    isKeypadVisible: Boolean = false,
     onKeypadVisibilityChange: ((Boolean) -> Unit)? = null
 ) {
     var phoneNumber by remember { mutableStateOf("") }
-    var isKeypadVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
-
-    LaunchedEffect(isKeypadVisible) {
-        onKeypadVisibilityChange?.invoke(isKeypadVisible)
-    }
 
     val permissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
@@ -250,25 +246,31 @@ fun DialerScreen(
                         .padding(bottom = innerPadding.calculateBottomPadding() + 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val keys = listOf(
-                        "1" to "", "2" to "ABC", "3" to "DEF",
-                        "4" to "GHI", "5" to "JKL", "6" to "MNO",
-                        "7" to "PQRS", "8" to "TUV", "9" to "WXYZ",
-                        "*" to "", "0" to "+", "#" to ""
+                    val keyRows = listOf(
+                        listOf("1" to "", "2" to "ABC", "3" to "DEF"),
+                        listOf("4" to "GHI", "5" to "JKL", "6" to "MNO"),
+                        listOf("7" to "PQRS", "8" to "TUV", "9" to "WXYZ"),
+                        listOf("*" to "", "0" to "+", "#" to "")
                     )
 
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        contentPadding = PaddingValues(horizontal = 32.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(24.dp)
+                    // Replaced LazyVerticalGrid with simple Row/Column for better low-end performance
+                    Column(
+                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(keys) { (number, letters) ->
-                            DialerKey(
-                                number = number,
-                                letters = letters,
-                                onClick = { phoneNumber += number }
-                            )
+                        keyRows.forEach { row ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                row.forEach { (number, letters) ->
+                                    DialerKey(
+                                        number = number,
+                                        letters = letters,
+                                        onClick = { phoneNumber += number }
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -306,7 +308,7 @@ fun DialerScreen(
             exit = scaleOut() + fadeOut()
         ) {
             FloatingActionButton(
-                onClick = { isKeypadVisible = true },
+                onClick = { onKeypadVisibilityChange?.invoke(true) },
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Icon(Icons.Filled.Dialpad, contentDescription = "Open Keypad")
@@ -320,7 +322,7 @@ fun DialerScreen(
             exit = scaleOut() + fadeOut()
         ) {
             FloatingActionButton(
-                onClick = { isKeypadVisible = false },
+                onClick = { onKeypadVisibilityChange?.invoke(false) },
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             ) {
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Hide Keypad")
