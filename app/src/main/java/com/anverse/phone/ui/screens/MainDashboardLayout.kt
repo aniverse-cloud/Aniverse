@@ -159,25 +159,27 @@ fun DialTabView(viewModel: DialerViewModel) {
                 val isMissed = log.type == CallLog.Calls.MISSED_TYPE
                 val textColor = if (isMissed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (isMissed) {
-                            Icon(Icons.Default.PhoneMissed, contentDescription = "Missed", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(8.dp))
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isMissed) {
+                                Icon(Icons.Default.PhoneMissed, contentDescription = "Missed", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Column {
+                                Text(log.number, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = textColor)
+                                Text("Unknown location", color = Color.Gray, fontSize = 12.sp)
+                            }
                         }
-                        Column {
-                            Text(log.number, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = textColor)
-                            Text("Unknown location", color = Color.Gray, fontSize = 12.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(log.duration, color = Color.Gray, fontSize = 12.sp)
+                            Spacer(Modifier.width(16.dp))
+                            Icon(Icons.Outlined.Info, contentDescription = "Info", tint = Color.Gray)
                         }
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(log.duration, color = Color.Gray, fontSize = 12.sp)
-                        Spacer(Modifier.width(16.dp))
-                        Icon(Icons.Outlined.Info, contentDescription = "Info", tint = Color.Gray)
                     }
                 }
             }
@@ -222,12 +224,14 @@ fun ContactsTabView(viewModel: DialerViewModel) {
             }
 
             items(contacts) { contact ->
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(40.dp).background(Color(0xFF93C5FD), CircleShape), contentAlignment = Alignment.Center) {
-                        Text(if (contact.name.isNotEmpty()) contact.name.take(1) else "?", fontWeight = FontWeight.Bold, color = Color.White)
+                Column {
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(40.dp).background(Color(0xFF93C5FD), CircleShape), contentAlignment = Alignment.Center) {
+                            Text(if (contact.name.isNotEmpty()) contact.name.take(1) else "?", fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(contact.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(contact.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 }
             }
         }
@@ -288,9 +292,7 @@ fun DialpadOverlay(number: String, onValueChange: (String) -> Unit, onClose: () 
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onClose) {
-                Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.Gray)
-            }
+            Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.Gray, modifier = Modifier.clickable { onClose() })
 
             Button(
                 onClick = { if (number.isNotEmpty()) placeSystemCall(context, number) },
@@ -314,13 +316,12 @@ fun DialpadOverlay(number: String, onValueChange: (String) -> Unit, onClose: () 
                 Text("SIM 2", color = Color.White)
             }
 
-            IconButton(onClick = { if (number.isNotEmpty()) onValueChange(number.dropLast(1)) }) {
-                Icon(
-                    Icons.Default.Backspace,
-                    contentDescription = "Delete",
-                    tint = Color.Gray
-                )
-            }
+            Icon(
+                Icons.Default.Backspace,
+                contentDescription = "Delete",
+                tint = Color.Gray,
+                modifier = Modifier.clickable { if (number.isNotEmpty()) onValueChange(number.dropLast(1)) }
+            )
         }
     }
 }
