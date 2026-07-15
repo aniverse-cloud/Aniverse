@@ -221,7 +221,7 @@ fun DialerScreen(
                         },
                         headlineContent = {
                             val headlineText = if (item.name.isEmpty()) item.number else item.name
-                            val countText = if (item.unreadMissedCount > 0) " (${item.unreadMissedCount})" else if (item.count > 1) " (${item.count})" else ""
+                            val countText = if (item.unreadMissedCount > 1) " (${item.unreadMissedCount})" else ""
                             val textColor = if (item.unreadMissedCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                             Text(
                                 text = "$headlineText$countText",
