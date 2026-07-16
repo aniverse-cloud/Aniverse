@@ -91,11 +91,15 @@ fun DialerScreen(
             val contentResolver: ContentResolver = context.contentResolver
 
             // Fetch Recent Calls
+            val thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)
             val cursorCalls = contentResolver.query(
                 CallLog.Calls.CONTENT_URI,
                 arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.DATE, CallLog.Calls.TYPE, CallLog.Calls.CACHED_NAME),
-                null, null, CallLog.Calls.DATE + " DESC"
+                CallLog.Calls.DATE + " >= ?",
+                arrayOf(thirtyDaysAgo.toString()),
+                CallLog.Calls.DATE + " DESC"
             )
+
             val fetchedCalls = mutableListOf<ContactOrCall>()
             cursorCalls?.use {
                 val numberIndex = it.getColumnIndex(CallLog.Calls.NUMBER)
@@ -103,37 +107,63 @@ fun DialerScreen(
                 val typeIndex = it.getColumnIndex(CallLog.Calls.TYPE)
                 val nameIndex = it.getColumnIndex(CallLog.Calls.CACHED_NAME)
 
-                while (it.moveToNext() && fetchedCalls.size < 100) {
+                while (it.moveToNext() && fetchedCalls.size < 1000) { // Increased limit
                     val number = it.getString(numberIndex) ?: ""
                     val dateMillis = it.getLong(dateIndex)
                     val type = it.getInt(typeIndex)
-                    val name = it.getString(nameIndex) ?: number
+                    val name = it.getString(nameIndex) ?: ""
 
-                    val formatter = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
-                    val dateString = formatter.format(Date(dateMillis))
-
-                    fetchedCalls.add(ContactOrCall(name, number, dateString, type, true, 1, listOf(CallLogEntry(dateString, type, dateMillis))))
+                    val dateString = android.text.format.DateFormat.format("MMM dd, HH:mm", dateMillis).toString()
+                    fetchedCalls.add(
+                        ContactOrCall(
+                            name = name,
+                            number = number,
+                            date = dateString,
+                            type = type,
+                            logs = listOf(CallLogEntry(dateString, type, dateMillis))
+                        )
+                    )
                 }
             }
 
-            // Group by number
-            val grouped = fetchedCalls.groupBy { it.number }.map { (_, calls) ->
-                val first = calls.first()
+            // Calculate global unread missed calls per number
+            val numberToGlobalUnreadMissed = mutableMapOf<String, Int>()
+            val allCallsByNumber = fetchedCalls.groupBy { it.number }
+            for ((number, calls) in allCallsByNumber) {
                 val allLogs = calls.flatMap { it.logs }.sortedByDescending { it.dateMillis }
-
-                // Calculate unread missed calls
                 var unreadMissed = 0
                 for (log in allLogs) {
                     if (log.type == CallLog.Calls.MISSED_TYPE) {
                         unreadMissed++
                     } else if (log.type == CallLog.Calls.INCOMING_TYPE || log.type == CallLog.Calls.OUTGOING_TYPE || log.type == CallLog.Calls.REJECTED_TYPE) {
-                        break // Stop counting if there's a successful or rejected call
+                        break
                     }
                 }
-
-                first.copy(count = calls.size, logs = allLogs, unreadMissedCount = unreadMissed)
+                numberToGlobalUnreadMissed[number] = unreadMissed
             }
-            recentCalls = grouped
+
+            // Group by number AND day
+            val dayFormat = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault())
+            val groupedByNumberAndDay = fetchedCalls.groupBy {
+                it.number + "_" + dayFormat.format(java.util.Date(it.logs.first().dateMillis))
+            }.values.map { calls ->
+                val first = calls.first()
+                val allLogsForDay = calls.flatMap { it.logs }.sortedByDescending { it.dateMillis }
+                first.copy(count = calls.size, logs = allLogsForDay)
+            }.sortedByDescending { it.logs.first().dateMillis } // Ensure descending order by latest call
+
+            // Apply unreadMissedCount ONLY to the most recent group for that number
+            val seenNumbers = mutableSetOf<String>()
+            val finalGrouped = groupedByNumberAndDay.map { group ->
+                if (!seenNumbers.contains(group.number)) {
+                    seenNumbers.add(group.number)
+                    group.copy(unreadMissedCount = numberToGlobalUnreadMissed[group.number] ?: 0)
+                } else {
+                    group.copy(unreadMissedCount = 0)
+                }
+            }
+
+            recentCalls = finalGrouped
 
             // Fetch Contacts
             val cursorContacts = contentResolver.query(
