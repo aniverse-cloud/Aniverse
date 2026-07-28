@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SyncAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.animation.core.animateFloatAsState
@@ -137,7 +138,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Dialer : Screen("dialer", "Recent", Icons.Filled.Phone)
     object Contacts : Screen("contacts", "Contact", Icons.Filled.Person)
     object Settings : Screen("settings", "Settings", Icons.Filled.Settings)
-    object Profile : Screen("profile", "Profile", Icons.Filled.Person)
+    object Transfer : Screen("transfer", "Trans", Icons.Filled.SyncAlt)
     object CallScreen : Screen("call_screen", "Call", Icons.Filled.Phone)
 }
 
@@ -147,7 +148,7 @@ fun DialerApp(navController: NavHostController) {
         Screen.Dialer,
         Screen.Contacts,
         Screen.Settings,
-        Screen.Profile
+        Screen.Transfer
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -194,7 +195,7 @@ fun DialerApp(navController: NavHostController) {
             }
             composable(Screen.Contacts.route) { ContactsScreen(innerPadding = innerPadding) }
             composable(Screen.Settings.route) { SettingsScreen() }
-            composable(Screen.Profile.route) { ProfileScreen() }
+            composable(Screen.Transfer.route) { TransferScreen() }
             composable(Screen.CallScreen.route) { CallScreen(navController) }
             composable(
                 route = "call_detail/{number}/{name}"
