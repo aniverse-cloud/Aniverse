@@ -10,6 +10,7 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
+import android.net.Uri
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.IBinder
@@ -103,13 +104,26 @@ class SimTransferService : Service() {
                 AudioTrack.MODE_STREAM
             )
 
-            socket = if (isHost) DatagramSocket(PORT) else DatagramSocket()
-
             // Sender Coroutine
             scope.launch {
+                try {
+                    if (socket == null) {
+                        socket = if (isHost) DatagramSocket(PORT) else DatagramSocket()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    stopStreaming()
+                    return@launch
+                }
+
                 val buffer = ByteArray(bufferSize)
                 audioRecord?.startRecording()
-                var destinationIp: InetAddress? = targetIp?.let { InetAddress.getByName(it) }
+                var destinationIp: InetAddress? = null
+                try {
+                    destinationIp = targetIp?.let { InetAddress.getByName(it) }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
 
                 while (isStreaming && isActive) {
                     val readSize = audioRecord?.read(buffer, 0, buffer.size) ?: 0
@@ -127,6 +141,10 @@ class SimTransferService : Service() {
 
             // Receiver Coroutine
             scope.launch {
+                // Wait for socket to be initialized by the sender coroutine
+                while (socket == null && isStreaming) {
+                    delay(100)
+                }
                 val buffer = ByteArray(bufferSize)
                 audioTrack?.play()
 
@@ -138,6 +156,19 @@ class SimTransferService : Service() {
                         // If host, update destination to the client that just talked to us
                         if (isHost) {
                             // In a real app we'd verify the IP against the API Key, but this is a P2P prototype
+                        }
+
+                        val packetData = String(packet.data, 0, packet.length)
+                        if (packetData.startsWith("DIAL:")) {
+                            val number = packetData.substringAfter("DIAL:")
+                            simulateHostCall(number)
+                            continue
+                        }
+
+                        val senderIp = packet.address.hostAddress
+                        if (targetIp != null && senderIp != targetIp) {
+                            // Security: Ignore packets from unauthorized IPs
+                            continue
                         }
 
                         audioTrack?.write(packet.data, 0, packet.length)
@@ -175,4 +206,15 @@ class SimTransferService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun simulateHostCall(number: String) {
+        try {
+            val callIntent = Intent(Intent.ACTION_CALL)
+            callIntent.data = Uri.parse("tel:$number")
+            callIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(callIntent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }
