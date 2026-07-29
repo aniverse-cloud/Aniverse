@@ -1,5 +1,7 @@
 package com.example.dialer
 
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,6 +15,7 @@ import kotlin.random.Random
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransferScreen() {
+    val context = LocalContext.current
     var isTransferEnabled by remember { mutableStateOf(false) }
 
     // Remote connection state
@@ -59,7 +62,21 @@ fun TransferScreen() {
                     Text(text = "Enable Transfer")
                     Switch(
                         checked = isTransferEnabled,
-                        onCheckedChange = { isTransferEnabled = it }
+                        onCheckedChange = {
+                            isTransferEnabled = it
+                            val intent = Intent(context, SimTransferService::class.java)
+                            if (it) {
+                                intent.action = SimTransferService.ACTION_START_HOST
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                    context.startForegroundService(intent)
+                                } else {
+                                    context.startService(intent)
+                                }
+                            } else {
+                                intent.action = SimTransferService.ACTION_STOP
+                                context.startService(intent)
+                            }
+                        }
                     )
                 }
 
@@ -88,7 +105,7 @@ fun TransferScreen() {
                 OutlinedTextField(
                     value = remoteApiName,
                     onValueChange = { remoteApiName = it },
-                    label = { Text("Remote API Name") },
+                    label = { Text("Remote API Name (IP Address)") },
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                 )
 
@@ -100,7 +117,22 @@ fun TransferScreen() {
                 )
 
                 Button(
-                    onClick = { isConnectedToRemote = !isConnectedToRemote },
+                    onClick = {
+                        isConnectedToRemote = !isConnectedToRemote
+                        val intent = Intent(context, SimTransferService::class.java)
+                        if (isConnectedToRemote) {
+                            intent.action = SimTransferService.ACTION_START_CLIENT
+                            intent.putExtra(SimTransferService.EXTRA_IP, remoteApiName) // Using Name as IP for prototype
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                context.startForegroundService(intent)
+                            } else {
+                                context.startService(intent)
+                            }
+                        } else {
+                            intent.action = SimTransferService.ACTION_STOP
+                            context.startService(intent)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isConnectedToRemote) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
